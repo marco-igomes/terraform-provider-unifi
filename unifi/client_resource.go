@@ -18,6 +18,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -198,26 +201,41 @@ Clients are created in the controller when observed on the network, so the resou
 				MarkdownDescription: "QoS rate limiting configuration. Controls the client group (usergroup) used for bandwidth limits.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
 						MarkdownDescription: "The ID of the client group (usergroup). If set, this group is used directly.",
 						Optional:            true,
 						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"name": schema.StringAttribute{
 						MarkdownDescription: "The name of the client group. If set, the group is looked up or created by name.",
 						Optional:            true,
 						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"max_up": schema.Int64Attribute{
 						MarkdownDescription: "Maximum upload rate in kbps.",
 						Optional:            true,
 						Computed:            true,
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
 					},
 					"max_down": schema.Int64Attribute{
 						MarkdownDescription: "Maximum download rate in kbps.",
 						Optional:            true,
 						Computed:            true,
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 			},
@@ -258,6 +276,9 @@ Clients are created in the controller when observed on the network, so the resou
 				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"blocked": schema.BoolAttribute{
 				MarkdownDescription: "Specifies whether this client should be blocked from the network.",
@@ -630,6 +651,10 @@ func (r *clientResource) Update(
 				return
 			}
 
+			// Config-only flags aren't round-tripped through the controller; carry them from plan.
+			state.AllowExisting = plan.AllowExisting
+			state.SkipForgetOnDestroy = plan.SkipForgetOnDestroy
+
 			// Update identity with MAC
 			identityModel := clientIdentityModel{
 				MAC: state.MAC,
@@ -672,6 +697,10 @@ func (r *clientResource) Update(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Config-only flags aren't round-tripped through the controller; carry them from plan.
+	state.AllowExisting = plan.AllowExisting
+	state.SkipForgetOnDestroy = plan.SkipForgetOnDestroy
 
 	// Update identity with MAC
 	identityModel := clientIdentityModel{
