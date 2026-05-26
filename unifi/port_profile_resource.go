@@ -12,7 +12,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -74,6 +76,11 @@ type portProfileResourceModel struct {
 	STPPortMode                types.Bool   `tfsdk:"stp_port_mode"`
 	TaggedNetworkConfIDs       types.Set    `tfsdk:"tagged_networkconf_ids"`
 	VoiceNetworkConfID         types.String `tfsdk:"voice_networkconf_id"`
+	SettingPreference          types.String `tfsdk:"setting_preference"`
+	TaggedVLANMgmt             types.String `tfsdk:"tagged_vlan_mgmt"`
+	PortKeepaliveEnabled       types.Bool   `tfsdk:"port_keepalive_enabled"`
+	ExcludedNetworkConfIDs     types.Set    `tfsdk:"excluded_networkconf_ids"`
+	QOSProfileMode             types.String `tfsdk:"qos_profile_mode"`
 }
 
 func (r *portProfileResource) Metadata(
@@ -350,6 +357,37 @@ func (r *portProfileResource) Schema(
 			"voice_networkconf_id": schema.StringAttribute{
 				Description: "The ID of network to use for voice traffic for the port profile.",
 				Optional:    true,
+			},
+			"setting_preference": schema.StringAttribute{
+				Description:   "Top-level setting preference (`auto` or `manual`).",
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"tagged_vlan_mgmt": schema.StringAttribute{
+				Description:   "Management of tagged VLANs: `auto`, `block_all`, or `custom`.",
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"port_keepalive_enabled": schema.BoolAttribute{
+				Description:   "Whether port keepalive is enabled.",
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"excluded_networkconf_ids": schema.SetAttribute{
+				Description:   "Networks excluded from this port profile (relevant when `tagged_vlan_mgmt = custom`).",
+				Optional:      true,
+				Computed:      true,
+				ElementType:   types.StringType,
+				PlanModifiers: []planmodifier.Set{setplanmodifier.UseStateForUnknown()},
+			},
+			"qos_profile_mode": schema.StringAttribute{
+				Description:   "QoS profile mode (`custom`, `unifi_play`, audio/video profiles, etc.). Only the mode is exposed; nested QoS policies are not yet modeled.",
+				Optional:      true,
+				Computed:      true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 		},
 	}
@@ -646,6 +684,28 @@ func (r *portProfileResource) modelToAPIPortProfile(
 
 	// Handle storm control and other complex fields as needed...
 
+	if !model.SettingPreference.IsNull() && !model.SettingPreference.IsUnknown() {
+		portProfile.SettingPreference = model.SettingPreference.ValueString()
+	}
+	if !model.TaggedVLANMgmt.IsNull() && !model.TaggedVLANMgmt.IsUnknown() {
+		portProfile.TaggedVLANMgmt = model.TaggedVLANMgmt.ValueString()
+	}
+	if !model.PortKeepaliveEnabled.IsNull() && !model.PortKeepaliveEnabled.IsUnknown() {
+		portProfile.PortKeepaliveEnabled = model.PortKeepaliveEnabled.ValueBool()
+	}
+	if !model.ExcludedNetworkConfIDs.IsNull() && !model.ExcludedNetworkConfIDs.IsUnknown() {
+		var excluded []string
+		diags.Append(model.ExcludedNetworkConfIDs.ElementsAs(ctx, &excluded, false)...)
+		if !diags.HasError() {
+			portProfile.ExcludedNetworkIDs = excluded
+		}
+	}
+	if !model.QOSProfileMode.IsNull() && !model.QOSProfileMode.IsUnknown() {
+		portProfile.QOSProfile = &unifi.PortProfileQOSProfile{
+			QOSProfileMode: model.QOSProfileMode.ValueString(),
+		}
+	}
+
 	return portProfile, diags
 }
 
@@ -732,6 +792,33 @@ func (r *portProfileResource) setResourceData(
 
 	model.VoiceNetworkConfID = types.StringNull() // Skip for now
 
+	if portProfile.SettingPreference == "" {
+		model.SettingPreference = types.StringNull()
+	} else {
+		model.SettingPreference = types.StringValue(portProfile.SettingPreference)
+	}
+	if portProfile.TaggedVLANMgmt == "" {
+		model.TaggedVLANMgmt = types.StringNull()
+	} else {
+		model.TaggedVLANMgmt = types.StringValue(portProfile.TaggedVLANMgmt)
+	}
+	model.PortKeepaliveEnabled = types.BoolValue(portProfile.PortKeepaliveEnabled)
+	if len(portProfile.ExcludedNetworkIDs) == 0 {
+		model.ExcludedNetworkConfIDs = types.SetNull(types.StringType)
+	} else {
+		excludedList := make([]types.String, len(portProfile.ExcludedNetworkIDs))
+		for i, id := range portProfile.ExcludedNetworkIDs {
+			excludedList[i] = types.StringValue(id)
+		}
+		excludedSet, _ := types.SetValueFrom(ctx, types.StringType, excludedList)
+		model.ExcludedNetworkConfIDs = excludedSet
+	}
+	if portProfile.QOSProfile != nil && portProfile.QOSProfile.QOSProfileMode != "" {
+		model.QOSProfileMode = types.StringValue(portProfile.QOSProfile.QOSProfileMode)
+	} else {
+		model.QOSProfileMode = types.StringNull()
+	}
+
 	// Set remaining fields to defaults or null as appropriate
 	model.EgressRateLimitKbps = types.Int64Null()
 	model.EgressRateLimitKbpsEnabled = types.BoolValue(false)
@@ -814,6 +901,21 @@ func (r *portProfileResource) applyPlanToState(
 	}
 	if !plan.VoiceNetworkConfID.IsNull() && !plan.VoiceNetworkConfID.IsUnknown() {
 		state.VoiceNetworkConfID = plan.VoiceNetworkConfID
+	}
+	if !plan.SettingPreference.IsNull() && !plan.SettingPreference.IsUnknown() {
+		state.SettingPreference = plan.SettingPreference
+	}
+	if !plan.TaggedVLANMgmt.IsNull() && !plan.TaggedVLANMgmt.IsUnknown() {
+		state.TaggedVLANMgmt = plan.TaggedVLANMgmt
+	}
+	if !plan.PortKeepaliveEnabled.IsNull() && !plan.PortKeepaliveEnabled.IsUnknown() {
+		state.PortKeepaliveEnabled = plan.PortKeepaliveEnabled
+	}
+	if !plan.ExcludedNetworkConfIDs.IsNull() && !plan.ExcludedNetworkConfIDs.IsUnknown() {
+		state.ExcludedNetworkConfIDs = plan.ExcludedNetworkConfIDs
+	}
+	if !plan.QOSProfileMode.IsNull() && !plan.QOSProfileMode.IsUnknown() {
+		state.QOSProfileMode = plan.QOSProfileMode
 	}
 	// Apply other fields as needed...
 }
