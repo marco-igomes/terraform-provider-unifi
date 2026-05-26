@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -35,6 +36,14 @@ var (
 
 func NewWLANFrameworkResource() resource.Resource {
 	return &wlanFrameworkResource{}
+}
+
+// wlanStringOrDefault returns v's string when set, else the supplied fallback.
+func wlanStringOrDefault(v types.String, def string) string {
+	if v.IsNull() || v.IsUnknown() {
+		return def
+	}
+	return v.ValueString()
 }
 
 // wlanFrameworkResource defines the resource implementation.
@@ -93,6 +102,10 @@ type wlanFrameworkResourceModel struct {
 	MinimumDataRate2GKbps    types.Int64  `tfsdk:"minimum_data_rate_2g_kbps"`
 	MinimumDataRate5GKbps    types.Int64  `tfsdk:"minimum_data_rate_5g_kbps"`
 	MinrateSettingPreference types.String `tfsdk:"minrate_setting_preference"`
+	SettingPreference        types.String `tfsdk:"setting_preference"`
+	WPAMode                  types.String `tfsdk:"wpa_mode"`
+	WPAEnc                   types.String `tfsdk:"wpa_enc"`
+	IappEnabled              types.Bool   `tfsdk:"iapp_enabled"`
 }
 
 func (r *wlanFrameworkResource) Metadata(
@@ -362,6 +375,39 @@ func (r *wlanFrameworkResource) Schema(
 				Validators: []validator.String{
 					stringvalidator.OneOf("auto", "manual"),
 				},
+			},
+			"setting_preference": schema.StringAttribute{
+				MarkdownDescription: "Top-level setting preference (`auto` or `manual`). Manual unlocks granular WLAN tuning fields on the controller.",
+				Optional:            true,
+				Computed:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("auto", "manual"),
+				},
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"wpa_mode": schema.StringAttribute{
+				MarkdownDescription: "WPA mode (`auto`, `wpa1`, `wpa2`). Defaults to `wpa2`.",
+				Optional:            true,
+				Computed:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("auto", "wpa1", "wpa2"),
+				},
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"wpa_enc": schema.StringAttribute{
+				MarkdownDescription: "WPA encryption (`auto`, `ccmp`, `gcmp`, `ccmp-256`, `gcmp-256`). Defaults to `ccmp`.",
+				Optional:            true,
+				Computed:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("auto", "ccmp", "gcmp", "ccmp-256", "gcmp-256"),
+				},
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"iapp_enabled": schema.BoolAttribute{
+				MarkdownDescription: "Enable Inter-Access-Point Protocol (802.11f) for roaming hand-offs between APs.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 		},
 
@@ -721,6 +767,18 @@ func (r *wlanFrameworkResource) applyPlanToState(
 	if !plan.MinrateSettingPreference.IsNull() && !plan.MinrateSettingPreference.IsUnknown() {
 		state.MinrateSettingPreference = plan.MinrateSettingPreference
 	}
+	if !plan.SettingPreference.IsNull() && !plan.SettingPreference.IsUnknown() {
+		state.SettingPreference = plan.SettingPreference
+	}
+	if !plan.WPAMode.IsNull() && !plan.WPAMode.IsUnknown() {
+		state.WPAMode = plan.WPAMode
+	}
+	if !plan.WPAEnc.IsNull() && !plan.WPAEnc.IsUnknown() {
+		state.WPAEnc = plan.WPAEnc
+	}
+	if !plan.IappEnabled.IsNull() && !plan.IappEnabled.IsUnknown() {
+		state.IappEnabled = plan.IappEnabled
+	}
 }
 
 func (r *wlanFrameworkResource) Delete(
@@ -816,9 +874,11 @@ func (r *wlanFrameworkResource) planToWLAN(
 		// Set defaults that UniFi expects
 		GroupRekey:         util.Ptr[int64](3600),
 		DTIMMode:           "default",
-		WPAEnc:             "ccmp",
-		WPAMode:            "wpa2",
+		WPAEnc:             wlanStringOrDefault(plan.WPAEnc, "ccmp"),
+		WPAMode:            wlanStringOrDefault(plan.WPAMode, "wpa2"),
 		NameCombineEnabled: true,
+		IappEnabled:        plan.IappEnabled.ValueBool(),
+		SettingPreference:  plan.SettingPreference.ValueString(),
 	}
 
 	// Handle MAC filter
@@ -1030,6 +1090,23 @@ func (r *wlanFrameworkResource) wlanToModel(
 
 	model.MinimumDataRate2GKbps = types.Int64PointerValue(wlan.MinrateNgDataRateKbps)
 	model.MinimumDataRate5GKbps = types.Int64PointerValue(wlan.MinrateNaDataRateKbps)
+
+	if wlan.SettingPreference != "" {
+		model.SettingPreference = types.StringValue(wlan.SettingPreference)
+	} else {
+		model.SettingPreference = types.StringNull()
+	}
+	if wlan.WPAMode != "" {
+		model.WPAMode = types.StringValue(wlan.WPAMode)
+	} else {
+		model.WPAMode = types.StringNull()
+	}
+	if wlan.WPAEnc != "" {
+		model.WPAEnc = types.StringValue(wlan.WPAEnc)
+	} else {
+		model.WPAEnc = types.StringNull()
+	}
+	model.IappEnabled = types.BoolValue(wlan.IappEnabled)
 
 	// Handle AP group IDs
 	if len(wlan.ApGroupIDs) > 0 {
