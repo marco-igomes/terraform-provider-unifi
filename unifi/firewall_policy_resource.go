@@ -45,6 +45,7 @@ type firewallPolicyResourceModel struct {
 	Index                 types.Int64  `tfsdk:"index"`
 	Logging               types.Bool   `tfsdk:"logging"`
 	MatchIPSec            types.Bool   `tfsdk:"match_ip_sec"`
+	MatchIPSecType        types.String `tfsdk:"match_ip_sec_type"`
 	MatchOppositeProtocol types.Bool   `tfsdk:"match_opposite_protocol"`
 	ConnectionStateType   types.String `tfsdk:"connection_state_type"`
 	ConnectionStates      types.List   `tfsdk:"connection_states"`
@@ -52,42 +53,52 @@ type firewallPolicyResourceModel struct {
 	ICMPTypename          types.String `tfsdk:"icmp_typename"`
 	ICMPV6Typename        types.String `tfsdk:"icmp_v6_typename"`
 	Predefined            types.Bool   `tfsdk:"predefined"`
+	OriginID              types.String `tfsdk:"origin_id"`
+	OriginType            types.String `tfsdk:"origin_type"`
 	Source                types.Object `tfsdk:"source"`
 	Destination           types.Object `tfsdk:"destination"`
 	Schedule              types.Object `tfsdk:"schedule"`
 }
 
 type firewallPolicyEndpointModel struct {
-	ZoneID             types.String `tfsdk:"zone_id"`
-	MatchingTarget     types.String `tfsdk:"matching_target"`
-	MatchingTargetType types.String `tfsdk:"matching_target_type"`
-	IPs                types.List   `tfsdk:"ips"`
-	MatchMAC           types.Bool   `tfsdk:"match_mac"`
-	MatchOppositeIPs   types.Bool   `tfsdk:"match_opposite_ips"`
-	MatchOppositePorts types.Bool   `tfsdk:"match_opposite_ports"`
-	Port               types.Int64  `tfsdk:"port"`
-	PortGroupID        types.String `tfsdk:"port_group_id"`
-	PortMatchingType   types.String `tfsdk:"port_matching_type"`
+	ZoneID                types.String `tfsdk:"zone_id"`
+	MatchingTarget        types.String `tfsdk:"matching_target"`
+	MatchingTargetType    types.String `tfsdk:"matching_target_type"`
+	IPGroupID             types.String `tfsdk:"ip_group_id"`
+	IPs                   types.List   `tfsdk:"ips"`
+	NetworkIDs            types.List   `tfsdk:"network_ids"`
+	MatchMAC              types.Bool   `tfsdk:"match_mac"`
+	MatchOppositeIPs      types.Bool   `tfsdk:"match_opposite_ips"`
+	MatchOppositeNetworks types.Bool   `tfsdk:"match_opposite_networks"`
+	MatchOppositePorts    types.Bool   `tfsdk:"match_opposite_ports"`
+	Port                  types.Int64  `tfsdk:"port"`
+	PortGroupID           types.String `tfsdk:"port_group_id"`
+	PortMatchingType      types.String `tfsdk:"port_matching_type"`
 }
 
 func firewallPolicyEndpointAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"zone_id":              types.StringType,
-		"matching_target":      types.StringType,
-		"matching_target_type": types.StringType,
-		"ips":                  types.ListType{ElemType: types.StringType},
-		"match_mac":            types.BoolType,
-		"match_opposite_ips":   types.BoolType,
-		"match_opposite_ports": types.BoolType,
-		"port":                 types.Int64Type,
-		"port_group_id":        types.StringType,
-		"port_matching_type":   types.StringType,
+		"zone_id":                 types.StringType,
+		"matching_target":         types.StringType,
+		"matching_target_type":    types.StringType,
+		"ip_group_id":             types.StringType,
+		"ips":                     types.ListType{ElemType: types.StringType},
+		"network_ids":             types.ListType{ElemType: types.StringType},
+		"match_mac":               types.BoolType,
+		"match_opposite_ips":      types.BoolType,
+		"match_opposite_networks": types.BoolType,
+		"match_opposite_ports":    types.BoolType,
+		"port":                    types.Int64Type,
+		"port_group_id":           types.StringType,
+		"port_matching_type":      types.StringType,
 	}
 }
 
 type firewallPolicyScheduleModel struct {
 	Mode           types.String `tfsdk:"mode"`
 	Date           types.String `tfsdk:"date"`
+	DateStart      types.String `tfsdk:"date_start"`
+	DateEnd        types.String `tfsdk:"date_end"`
 	RepeatOnDays   types.List   `tfsdk:"repeat_on_days"`
 	TimeAllDay     types.Bool   `tfsdk:"time_all_day"`
 	TimeRangeStart types.String `tfsdk:"time_range_start"`
@@ -98,6 +109,8 @@ func firewallPolicyScheduleAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"mode":             types.StringType,
 		"date":             types.StringType,
+		"date_start":       types.StringType,
+		"date_end":         types.StringType,
 		"repeat_on_days":   types.ListType{ElemType: types.StringType},
 		"time_all_day":     types.BoolType,
 		"time_range_start": types.StringType,
@@ -133,12 +146,31 @@ func endpointAttributes(label string) map[string]schema.Attribute {
 			Computed:            true,
 			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 		},
+		"ip_group_id": schema.StringAttribute{
+			MarkdownDescription: "ID of an address-group `unifi_firewall_group` (used when matching_target=IP and matching_target_type=OBJECT).",
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+		},
 		"ips": schema.ListAttribute{
 			MarkdownDescription: "IPs (used when matching_target is `IP` and matching_target_type is `SPECIFIC` or `LIST`).",
 			Optional:            true,
 			Computed:            true,
 			ElementType:         types.StringType,
 			PlanModifiers:       []planmodifier.List{listplanmodifier.UseStateForUnknown()},
+		},
+		"network_ids": schema.ListAttribute{
+			MarkdownDescription: "Network IDs (used when matching_target is `NETWORK`). Reference `unifi_network` resources via `.id`.",
+			Optional:            true,
+			Computed:            true,
+			ElementType:         types.StringType,
+			PlanModifiers:       []planmodifier.List{listplanmodifier.UseStateForUnknown()},
+		},
+		"match_opposite_networks": schema.BoolAttribute{
+			MarkdownDescription: "Invert the network match (match everything except the specified networks).",
+			Optional:            true,
+			Computed:            true,
+			PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 		},
 		"match_mac": schema.BoolAttribute{
 			MarkdownDescription: "Match by MAC address.",
@@ -246,6 +278,22 @@ func (r *firewallPolicyResource) Schema(
 				Computed:            true,
 				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
+			"match_ip_sec_type": schema.StringAttribute{
+				MarkdownDescription: "IPsec match type: `MATCH_IP_SEC` or `MATCH_NON_IP_SEC`.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"origin_id": schema.StringAttribute{
+				MarkdownDescription: "System-set: links the policy back to a UniFi-generated source (e.g. wifiman). Read-only.",
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"origin_type": schema.StringAttribute{
+				MarkdownDescription: "System-set: classification of `origin_id`. Read-only.",
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
 			"match_opposite_protocol": schema.BoolAttribute{
 				MarkdownDescription: "Invert the protocol match.",
 				Optional:            true,
@@ -316,6 +364,18 @@ func (r *firewallPolicyResource) Schema(
 					},
 					"date": schema.StringAttribute{
 						MarkdownDescription: "Date for ONE_TIME_ONLY mode (YYYY-MM-DD).",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+					},
+					"date_start": schema.StringAttribute{
+						MarkdownDescription: "Start date for windowed schedules (ISO8601).",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+					},
+					"date_end": schema.StringAttribute{
+						MarkdownDescription: "End date for windowed schedules (ISO8601).",
 						Optional:            true,
 						Computed:            true,
 						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
@@ -516,12 +576,15 @@ func (r *firewallPolicyResource) modelToPolicy(
 		Version:               model.IPVersion.ValueString(),
 		Logging:               model.Logging.ValueBool(),
 		MatchIPSec:            model.MatchIPSec.ValueBool(),
+		MatchIPSecType:        model.MatchIPSecType.ValueString(),
 		MatchOppositeProtocol: model.MatchOppositeProtocol.ValueBool(),
 		ConnectionStateType:   model.ConnectionStateType.ValueString(),
 		CreateAllowRespond:    model.CreateAllowRespond.ValueBool(),
 		ICMPTypename:          model.ICMPTypename.ValueString(),
 		ICMPV6Typename:        model.ICMPV6Typename.ValueString(),
 		Index:                 int64PointerOrNil(model.Index),
+		OriginID:              model.OriginID.ValueString(),
+		OriginType:            model.OriginType.ValueString(),
 	}
 
 	if !model.ConnectionStates.IsNull() && !model.ConnectionStates.IsUnknown() {
@@ -568,21 +631,30 @@ func endpointModelToSource(
 		return nil, diags
 	}
 	src := &unifi.FirewallPolicySource{
-		ZoneID:             ep.ZoneID.ValueString(),
-		MatchingTarget:     ep.MatchingTarget.ValueString(),
-		MatchingTargetType: ep.MatchingTargetType.ValueString(),
-		MatchMAC:           ep.MatchMAC.ValueBool(),
-		MatchOppositeIPs:   ep.MatchOppositeIPs.ValueBool(),
-		MatchOppositePorts: ep.MatchOppositePorts.ValueBool(),
-		Port:               int64PointerOrNil(ep.Port),
-		PortGroupID:        ep.PortGroupID.ValueString(),
-		PortMatchingType:   ep.PortMatchingType.ValueString(),
+		ZoneID:                ep.ZoneID.ValueString(),
+		MatchingTarget:        ep.MatchingTarget.ValueString(),
+		MatchingTargetType:    ep.MatchingTargetType.ValueString(),
+		IPGroupID:             ep.IPGroupID.ValueString(),
+		MatchMAC:              ep.MatchMAC.ValueBool(),
+		MatchOppositeIPs:      ep.MatchOppositeIPs.ValueBool(),
+		MatchOppositeNetworks: ep.MatchOppositeNetworks.ValueBool(),
+		MatchOppositePorts:    ep.MatchOppositePorts.ValueBool(),
+		Port:                  int64PointerOrNil(ep.Port),
+		PortGroupID:           ep.PortGroupID.ValueString(),
+		PortMatchingType:      ep.PortMatchingType.ValueString(),
 	}
 	if !ep.IPs.IsNull() && !ep.IPs.IsUnknown() {
 		var ips []string
 		diags.Append(ep.IPs.ElementsAs(ctx, &ips, false)...)
 		if !diags.HasError() {
 			src.IPs = ips
+		}
+	}
+	if !ep.NetworkIDs.IsNull() && !ep.NetworkIDs.IsUnknown() {
+		var nids []string
+		diags.Append(ep.NetworkIDs.ElementsAs(ctx, &nids, false)...)
+		if !diags.HasError() {
+			src.NetworkIDs = nids
 		}
 	}
 	return src, diags
@@ -599,21 +671,30 @@ func endpointModelToDestination(
 		return nil, diags
 	}
 	dst := &unifi.FirewallPolicyDestination{
-		ZoneID:             ep.ZoneID.ValueString(),
-		MatchingTarget:     ep.MatchingTarget.ValueString(),
-		MatchingTargetType: ep.MatchingTargetType.ValueString(),
-		MatchMAC:           ep.MatchMAC.ValueBool(),
-		MatchOppositeIPs:   ep.MatchOppositeIPs.ValueBool(),
-		MatchOppositePorts: ep.MatchOppositePorts.ValueBool(),
-		Port:               int64PointerOrNil(ep.Port),
-		PortGroupID:        ep.PortGroupID.ValueString(),
-		PortMatchingType:   ep.PortMatchingType.ValueString(),
+		ZoneID:                ep.ZoneID.ValueString(),
+		MatchingTarget:        ep.MatchingTarget.ValueString(),
+		MatchingTargetType:    ep.MatchingTargetType.ValueString(),
+		IPGroupID:             ep.IPGroupID.ValueString(),
+		MatchMAC:              ep.MatchMAC.ValueBool(),
+		MatchOppositeIPs:      ep.MatchOppositeIPs.ValueBool(),
+		MatchOppositeNetworks: ep.MatchOppositeNetworks.ValueBool(),
+		MatchOppositePorts:    ep.MatchOppositePorts.ValueBool(),
+		Port:                  int64PointerOrNil(ep.Port),
+		PortGroupID:           ep.PortGroupID.ValueString(),
+		PortMatchingType:      ep.PortMatchingType.ValueString(),
 	}
 	if !ep.IPs.IsNull() && !ep.IPs.IsUnknown() {
 		var ips []string
 		diags.Append(ep.IPs.ElementsAs(ctx, &ips, false)...)
 		if !diags.HasError() {
 			dst.IPs = ips
+		}
+	}
+	if !ep.NetworkIDs.IsNull() && !ep.NetworkIDs.IsUnknown() {
+		var nids []string
+		diags.Append(ep.NetworkIDs.ElementsAs(ctx, &nids, false)...)
+		if !diags.HasError() {
+			dst.NetworkIDs = nids
 		}
 	}
 	return dst, diags
@@ -632,6 +713,8 @@ func scheduleModelToAPI(
 	sched := &unifi.FirewallPolicySchedule{
 		Mode:           s.Mode.ValueString(),
 		Date:           s.Date.ValueString(),
+		DateStart:      s.DateStart.ValueString(),
+		DateEnd:        s.DateEnd.ValueString(),
 		TimeAllDay:     s.TimeAllDay.ValueBool(),
 		TimeRangeStart: s.TimeRangeStart.ValueString(),
 		TimeRangeEnd:   s.TimeRangeEnd.ValueString(),
@@ -665,11 +748,14 @@ func (r *firewallPolicyResource) policyToModel(
 	model.Logging = types.BoolValue(policy.Logging)
 	model.MatchIPSec = types.BoolValue(policy.MatchIPSec)
 	model.MatchOppositeProtocol = types.BoolValue(policy.MatchOppositeProtocol)
+	model.MatchIPSecType = stringOrNull(policy.MatchIPSecType)
 	model.ConnectionStateType = stringOrNull(policy.ConnectionStateType)
 	model.CreateAllowRespond = types.BoolValue(policy.CreateAllowRespond)
 	model.ICMPTypename = stringOrNull(policy.ICMPTypename)
 	model.ICMPV6Typename = stringOrNull(policy.ICMPV6Typename)
 	model.Predefined = types.BoolValue(policy.Predefined)
+	model.OriginID = stringOrNull(policy.OriginID)
+	model.OriginType = stringOrNull(policy.OriginType)
 
 	if len(policy.ConnectionStates) == 0 {
 		model.ConnectionStates = types.ListNull(types.StringType)
@@ -699,16 +785,19 @@ func endpointSourceToObject(
 		return types.ObjectNull(firewallPolicyEndpointAttrTypes())
 	}
 	ep := firewallPolicyEndpointModel{
-		ZoneID:             stringOrNull(src.ZoneID),
-		MatchingTarget:     stringOrNull(src.MatchingTarget),
-		MatchingTargetType: stringOrNull(src.MatchingTargetType),
-		MatchMAC:           types.BoolValue(src.MatchMAC),
-		MatchOppositeIPs:   types.BoolValue(src.MatchOppositeIPs),
-		MatchOppositePorts: types.BoolValue(src.MatchOppositePorts),
-		Port:               types.Int64PointerValue(src.Port),
-		PortGroupID:        stringOrNull(src.PortGroupID),
-		PortMatchingType:   stringOrNull(src.PortMatchingType),
-		IPs:                stringListOrNull(ctx, src.IPs, diags),
+		ZoneID:                stringOrNull(src.ZoneID),
+		MatchingTarget:        stringOrNull(src.MatchingTarget),
+		MatchingTargetType:    stringOrNull(src.MatchingTargetType),
+		IPGroupID:             stringOrNull(src.IPGroupID),
+		MatchMAC:              types.BoolValue(src.MatchMAC),
+		MatchOppositeIPs:      types.BoolValue(src.MatchOppositeIPs),
+		MatchOppositeNetworks: types.BoolValue(src.MatchOppositeNetworks),
+		MatchOppositePorts:    types.BoolValue(src.MatchOppositePorts),
+		Port:                  types.Int64PointerValue(src.Port),
+		PortGroupID:           stringOrNull(src.PortGroupID),
+		PortMatchingType:      stringOrNull(src.PortMatchingType),
+		IPs:                   stringListOrNull(ctx, src.IPs, diags),
+		NetworkIDs:            stringListOrNull(ctx, src.NetworkIDs, diags),
 	}
 	obj, d := types.ObjectValueFrom(ctx, firewallPolicyEndpointAttrTypes(), ep)
 	diags.Append(d...)
@@ -724,16 +813,19 @@ func endpointDestinationToObject(
 		return types.ObjectNull(firewallPolicyEndpointAttrTypes())
 	}
 	ep := firewallPolicyEndpointModel{
-		ZoneID:             stringOrNull(dst.ZoneID),
-		MatchingTarget:     stringOrNull(dst.MatchingTarget),
-		MatchingTargetType: stringOrNull(dst.MatchingTargetType),
-		MatchMAC:           types.BoolValue(dst.MatchMAC),
-		MatchOppositeIPs:   types.BoolValue(dst.MatchOppositeIPs),
-		MatchOppositePorts: types.BoolValue(dst.MatchOppositePorts),
-		Port:               types.Int64PointerValue(dst.Port),
-		PortGroupID:        stringOrNull(dst.PortGroupID),
-		PortMatchingType:   stringOrNull(dst.PortMatchingType),
-		IPs:                stringListOrNull(ctx, dst.IPs, diags),
+		ZoneID:                stringOrNull(dst.ZoneID),
+		MatchingTarget:        stringOrNull(dst.MatchingTarget),
+		MatchingTargetType:    stringOrNull(dst.MatchingTargetType),
+		IPGroupID:             stringOrNull(dst.IPGroupID),
+		MatchMAC:              types.BoolValue(dst.MatchMAC),
+		MatchOppositeIPs:      types.BoolValue(dst.MatchOppositeIPs),
+		MatchOppositeNetworks: types.BoolValue(dst.MatchOppositeNetworks),
+		MatchOppositePorts:    types.BoolValue(dst.MatchOppositePorts),
+		Port:                  types.Int64PointerValue(dst.Port),
+		PortGroupID:           stringOrNull(dst.PortGroupID),
+		PortMatchingType:      stringOrNull(dst.PortMatchingType),
+		IPs:                   stringListOrNull(ctx, dst.IPs, diags),
+		NetworkIDs:            stringListOrNull(ctx, dst.NetworkIDs, diags),
 	}
 	obj, d := types.ObjectValueFrom(ctx, firewallPolicyEndpointAttrTypes(), ep)
 	diags.Append(d...)
@@ -751,6 +843,8 @@ func scheduleToObject(
 	sm := firewallPolicyScheduleModel{
 		Mode:           stringOrNull(s.Mode),
 		Date:           stringOrNull(s.Date),
+		DateStart:      stringOrNull(s.DateStart),
+		DateEnd:        stringOrNull(s.DateEnd),
 		TimeAllDay:     types.BoolValue(s.TimeAllDay),
 		TimeRangeStart: stringOrNull(s.TimeRangeStart),
 		TimeRangeEnd:   stringOrNull(s.TimeRangeEnd),
