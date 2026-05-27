@@ -250,8 +250,12 @@ func (r *settingIpsResource) settingToModel(ctx context.Context, meta *ui.Settin
 func (r *settingIpsResource) applyModelToSetting(ctx context.Context, m *settingIpsModel, s *settings.Ips, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.AdvancedFilteringPreference = m.AdvancedFilteringPreference.ValueString()
-	s.ContentFilteringBlockingPageEnabled = m.ContentFilteringBlockingPageEnabled.ValueBool()
+	if !m.AdvancedFilteringPreference.IsNull() && !m.AdvancedFilteringPreference.IsUnknown() {
+		s.AdvancedFilteringPreference = m.AdvancedFilteringPreference.ValueString()
+	}
+	if !m.ContentFilteringBlockingPageEnabled.IsNull() && !m.ContentFilteringBlockingPageEnabled.IsUnknown() {
+		s.ContentFilteringBlockingPageEnabled = m.ContentFilteringBlockingPageEnabled.ValueBool()
+	}
 	if !m.EnabledCategories.IsNull() && !m.EnabledCategories.IsUnknown() {
 		var v []string
 		diags.Append(m.EnabledCategories.ElementsAs(ctx, &v, false)...)
@@ -270,10 +274,18 @@ func (r *settingIpsResource) applyModelToSetting(ctx context.Context, m *setting
 			s.Honeypot = val
 		}
 	}
-	s.HoneypotEnabled = m.HoneypotEnabled.ValueBool()
-	s.IPsMode = m.IPsMode.ValueString()
-	s.MemoryOptimized = m.MemoryOptimized.ValueBool()
-	s.RestrictTorrents = m.RestrictTorrents.ValueBool()
+	if !m.HoneypotEnabled.IsNull() && !m.HoneypotEnabled.IsUnknown() {
+		s.HoneypotEnabled = m.HoneypotEnabled.ValueBool()
+	}
+	if !m.IPsMode.IsNull() && !m.IPsMode.IsUnknown() {
+		s.IPsMode = m.IPsMode.ValueString()
+	}
+	if !m.MemoryOptimized.IsNull() && !m.MemoryOptimized.IsUnknown() {
+		s.MemoryOptimized = m.MemoryOptimized.ValueBool()
+	}
+	if !m.RestrictTorrents.IsNull() && !m.RestrictTorrents.IsUnknown() {
+		s.RestrictTorrents = m.RestrictTorrents.ValueBool()
+	}
 	if !m.Suppression.IsNull() && !m.Suppression.IsUnknown() {
 		var val *settings.SettingIpsSuppression
 		if err := json.Unmarshal([]byte(m.Suppression.ValueString()), &val); err != nil {

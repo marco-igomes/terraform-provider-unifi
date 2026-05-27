@@ -196,5 +196,7 @@ func (r *settingGlobalNatResource) applyModelToSetting(ctx context.Context, m *s
 		diags.Append(m.ExcludedNetworkIDs.ElementsAs(ctx, &v, false)...)
 		s.ExcludedNetworkIDs = v
 	}
-	s.Mode = m.Mode.ValueString()
+	if !m.Mode.IsNull() && !m.Mode.IsUnknown() {
+		s.Mode = m.Mode.ValueString()
+	}
 }

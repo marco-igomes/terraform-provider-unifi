@@ -190,6 +190,10 @@ func (r *settingDpiResource) settingToModel(ctx context.Context, meta *ui.Settin
 func (r *settingDpiResource) applyModelToSetting(ctx context.Context, m *settingDpiModel, s *settings.Dpi, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.Enabled = m.Enabled.ValueBool()
-	s.FingerprintingEnabled = m.FingerprintingEnabled.ValueBool()
+	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
+		s.Enabled = m.Enabled.ValueBool()
+	}
+	if !m.FingerprintingEnabled.IsNull() && !m.FingerprintingEnabled.IsUnknown() {
+		s.FingerprintingEnabled = m.FingerprintingEnabled.ValueBool()
+	}
 }

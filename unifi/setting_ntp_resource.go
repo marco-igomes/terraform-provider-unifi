@@ -210,9 +210,19 @@ func (r *settingNtpResource) settingToModel(ctx context.Context, meta *ui.Settin
 func (r *settingNtpResource) applyModelToSetting(ctx context.Context, m *settingNtpModel, s *settings.Ntp, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.NtpServer1 = m.NtpServer1.ValueString()
-	s.NtpServer2 = m.NtpServer2.ValueString()
-	s.NtpServer3 = m.NtpServer3.ValueString()
-	s.NtpServer4 = m.NtpServer4.ValueString()
-	s.SettingPreference = m.SettingPreference.ValueString()
+	if !m.NtpServer1.IsNull() && !m.NtpServer1.IsUnknown() {
+		s.NtpServer1 = m.NtpServer1.ValueString()
+	}
+	if !m.NtpServer2.IsNull() && !m.NtpServer2.IsUnknown() {
+		s.NtpServer2 = m.NtpServer2.ValueString()
+	}
+	if !m.NtpServer3.IsNull() && !m.NtpServer3.IsUnknown() {
+		s.NtpServer3 = m.NtpServer3.ValueString()
+	}
+	if !m.NtpServer4.IsNull() && !m.NtpServer4.IsUnknown() {
+		s.NtpServer4 = m.NtpServer4.ValueString()
+	}
+	if !m.SettingPreference.IsNull() && !m.SettingPreference.IsUnknown() {
+		s.SettingPreference = m.SettingPreference.ValueString()
+	}
 }

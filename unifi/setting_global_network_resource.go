@@ -182,5 +182,7 @@ func (r *settingGlobalNetworkResource) settingToModel(ctx context.Context, meta 
 func (r *settingGlobalNetworkResource) applyModelToSetting(ctx context.Context, m *settingGlobalNetworkModel, s *settings.GlobalNetwork, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.DefaultSecurityPosture = m.DefaultSecurityPosture.ValueString()
+	if !m.DefaultSecurityPosture.IsNull() && !m.DefaultSecurityPosture.IsUnknown() {
+		s.DefaultSecurityPosture = m.DefaultSecurityPosture.ValueString()
+	}
 }

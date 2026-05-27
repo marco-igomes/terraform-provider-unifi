@@ -218,10 +218,22 @@ func (r *settingConnectivityResource) settingToModel(ctx context.Context, meta *
 func (r *settingConnectivityResource) applyModelToSetting(ctx context.Context, m *settingConnectivityModel, s *settings.Connectivity, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.EnableIsolatedWLAN = m.EnableIsolatedWLAN.ValueBool()
-	s.Enabled = m.Enabled.ValueBool()
-	s.MeshEssid = m.MeshEssid.ValueString()
-	s.MeshPsk = m.MeshPsk.ValueString()
-	s.UplinkHost = m.UplinkHost.ValueString()
-	s.UplinkType = m.UplinkType.ValueString()
+	if !m.EnableIsolatedWLAN.IsNull() && !m.EnableIsolatedWLAN.IsUnknown() {
+		s.EnableIsolatedWLAN = m.EnableIsolatedWLAN.ValueBool()
+	}
+	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
+		s.Enabled = m.Enabled.ValueBool()
+	}
+	if !m.MeshEssid.IsNull() && !m.MeshEssid.IsUnknown() {
+		s.MeshEssid = m.MeshEssid.ValueString()
+	}
+	if !m.MeshPsk.IsNull() && !m.MeshPsk.IsUnknown() {
+		s.MeshPsk = m.MeshPsk.ValueString()
+	}
+	if !m.UplinkHost.IsNull() && !m.UplinkHost.IsUnknown() {
+		s.UplinkHost = m.UplinkHost.ValueString()
+	}
+	if !m.UplinkType.IsNull() && !m.UplinkType.IsUnknown() {
+		s.UplinkType = m.UplinkType.ValueString()
+	}
 }

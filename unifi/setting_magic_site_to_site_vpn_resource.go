@@ -183,5 +183,7 @@ func (r *settingMagicSiteToSiteVpnResource) settingToModel(ctx context.Context, 
 func (r *settingMagicSiteToSiteVpnResource) applyModelToSetting(ctx context.Context, m *settingMagicSiteToSiteVpnModel, s *settings.MagicSiteToSiteVpn, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.Enabled = m.Enabled.ValueBool()
+	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
+		s.Enabled = m.Enabled.ValueBool()
+	}
 }

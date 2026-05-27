@@ -212,5 +212,7 @@ func (r *settingDohResource) applyModelToSetting(ctx context.Context, m *setting
 		diags.Append(m.ServerNames.ElementsAs(ctx, &v, false)...)
 		s.ServerNames = v
 	}
-	s.State = m.State.ValueString()
+	if !m.State.IsNull() && !m.State.IsUnknown() {
+		s.State = m.State.ValueString()
+	}
 }

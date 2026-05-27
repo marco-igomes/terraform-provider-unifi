@@ -281,39 +281,55 @@ func (r *settingIgmpSnoopingResource) settingToModel(ctx context.Context, meta *
 func (r *settingIgmpSnoopingResource) applyModelToSetting(ctx context.Context, m *settingIgmpSnoopingModel, s *settings.IgmpSnooping, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.Enabled = m.Enabled.ValueBool()
-	s.FailoverQuerier = m.FailoverQuerier.ValueString()
+	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
+		s.Enabled = m.Enabled.ValueBool()
+	}
+	if !m.FailoverQuerier.IsNull() && !m.FailoverQuerier.IsUnknown() {
+		s.FailoverQuerier = m.FailoverQuerier.ValueString()
+	}
 	if !m.FastleaveForNetworkIDs.IsNull() && !m.FastleaveForNetworkIDs.IsUnknown() {
 		var v []string
 		diags.Append(m.FastleaveForNetworkIDs.ElementsAs(ctx, &v, false)...)
 		s.FastleaveForNetworkIDs = v
 	}
-	s.FloodKnownProtocols = m.FloodKnownProtocols.ValueBool()
+	if !m.FloodKnownProtocols.IsNull() && !m.FloodKnownProtocols.IsUnknown() {
+		s.FloodKnownProtocols = m.FloodKnownProtocols.ValueBool()
+	}
 	if !m.FloodUnknownMulticastForNetworkIDs.IsNull() && !m.FloodUnknownMulticastForNetworkIDs.IsUnknown() {
 		var v []string
 		diags.Append(m.FloodUnknownMulticastForNetworkIDs.ElementsAs(ctx, &v, false)...)
 		s.FloodUnknownMulticastForNetworkIDs = v
 	}
-	s.ForwardUnknownMcastRouterPorts = m.ForwardUnknownMcastRouterPorts.ValueBool()
+	if !m.ForwardUnknownMcastRouterPorts.IsNull() && !m.ForwardUnknownMcastRouterPorts.IsUnknown() {
+		s.ForwardUnknownMcastRouterPorts = m.ForwardUnknownMcastRouterPorts.ValueBool()
+	}
 	if !m.NetworkIDs.IsNull() && !m.NetworkIDs.IsUnknown() {
 		var v []string
 		diags.Append(m.NetworkIDs.ElementsAs(ctx, &v, false)...)
 		s.NetworkIDs = v
 	}
-	s.PrimaryQuerier = m.PrimaryQuerier.ValueString()
+	if !m.PrimaryQuerier.IsNull() && !m.PrimaryQuerier.IsUnknown() {
+		s.PrimaryQuerier = m.PrimaryQuerier.ValueString()
+	}
 	if !m.QuerierAddresses.IsNull() && !m.QuerierAddresses.IsUnknown() {
 		var v []string
 		diags.Append(m.QuerierAddresses.ElementsAs(ctx, &v, false)...)
 		s.QuerierAddresses = v
 	}
-	s.QuerierMode = m.QuerierMode.ValueString()
-	s.QuerierSubscriptionMode = m.QuerierSubscriptionMode.ValueString()
+	if !m.QuerierMode.IsNull() && !m.QuerierMode.IsUnknown() {
+		s.QuerierMode = m.QuerierMode.ValueString()
+	}
+	if !m.QuerierSubscriptionMode.IsNull() && !m.QuerierSubscriptionMode.IsUnknown() {
+		s.QuerierSubscriptionMode = m.QuerierSubscriptionMode.ValueString()
+	}
 	if !m.QuerierSwitches.IsNull() && !m.QuerierSwitches.IsUnknown() {
 		var v []string
 		diags.Append(m.QuerierSwitches.ElementsAs(ctx, &v, false)...)
 		s.QuerierSwitches = v
 	}
-	s.SubscriptionMode = m.SubscriptionMode.ValueString()
+	if !m.SubscriptionMode.IsNull() && !m.SubscriptionMode.IsUnknown() {
+		s.SubscriptionMode = m.SubscriptionMode.ValueString()
+	}
 	if !m.Switches.IsNull() && !m.Switches.IsUnknown() {
 		var v []string
 		diags.Append(m.Switches.ElementsAs(ctx, &v, false)...)

@@ -183,5 +183,7 @@ func (r *settingCountryResource) settingToModel(ctx context.Context, meta *ui.Se
 func (r *settingCountryResource) applyModelToSetting(ctx context.Context, m *settingCountryModel, s *settings.Country, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.Code = int64PointerOrNil(m.Code)
+	if !m.Code.IsNull() && !m.Code.IsUnknown() {
+		s.Code = int64PointerOrNil(m.Code)
+	}
 }

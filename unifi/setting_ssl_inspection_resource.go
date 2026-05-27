@@ -182,5 +182,7 @@ func (r *settingSslInspectionResource) settingToModel(ctx context.Context, meta 
 func (r *settingSslInspectionResource) applyModelToSetting(ctx context.Context, m *settingSslInspectionModel, s *settings.SslInspection, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.State = m.State.ValueString()
+	if !m.State.IsNull() && !m.State.IsUnknown() {
+		s.State = m.State.ValueString()
+	}
 }

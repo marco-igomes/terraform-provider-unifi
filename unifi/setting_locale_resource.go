@@ -182,5 +182,7 @@ func (r *settingLocaleResource) settingToModel(ctx context.Context, meta *ui.Set
 func (r *settingLocaleResource) applyModelToSetting(ctx context.Context, m *settingLocaleModel, s *settings.Locale, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.Timezone = m.Timezone.ValueString()
+	if !m.Timezone.IsNull() && !m.Timezone.IsUnknown() {
+		s.Timezone = m.Timezone.ValueString()
+	}
 }

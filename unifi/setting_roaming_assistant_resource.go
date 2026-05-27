@@ -191,6 +191,10 @@ func (r *settingRoamingAssistantResource) settingToModel(ctx context.Context, me
 func (r *settingRoamingAssistantResource) applyModelToSetting(ctx context.Context, m *settingRoamingAssistantModel, s *settings.RoamingAssistant, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.Enabled = m.Enabled.ValueBool()
-	s.Rssi = int64PointerOrNil(m.Rssi)
+	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
+		s.Enabled = m.Enabled.ValueBool()
+	}
+	if !m.Rssi.IsNull() && !m.Rssi.IsUnknown() {
+		s.Rssi = int64PointerOrNil(m.Rssi)
+	}
 }

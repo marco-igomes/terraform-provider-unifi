@@ -277,15 +277,33 @@ func (r *settingGlobalSwitchResource) applyModelToSetting(ctx context.Context, m
 			s.AclL3Isolation = val
 		}
 	}
-	s.DHCPSnoop = m.DHCPSnoop.ValueBool()
-	s.Dot1XFallbackNetworkID = m.Dot1XFallbackNetworkID.ValueString()
-	s.Dot1XPortctrlEnabled = m.Dot1XPortctrlEnabled.ValueBool()
-	s.FloodKnownProtocols = m.FloodKnownProtocols.ValueBool()
-	s.FlowctrlEnabled = m.FlowctrlEnabled.ValueBool()
-	s.ForwardUnknownMcastRouterPorts = m.ForwardUnknownMcastRouterPorts.ValueBool()
-	s.JumboframeEnabled = m.JumboframeEnabled.ValueBool()
-	s.RADIUSProfileID = m.RADIUSProfileID.ValueString()
-	s.StpVersion = m.StpVersion.ValueString()
+	if !m.DHCPSnoop.IsNull() && !m.DHCPSnoop.IsUnknown() {
+		s.DHCPSnoop = m.DHCPSnoop.ValueBool()
+	}
+	if !m.Dot1XFallbackNetworkID.IsNull() && !m.Dot1XFallbackNetworkID.IsUnknown() {
+		s.Dot1XFallbackNetworkID = m.Dot1XFallbackNetworkID.ValueString()
+	}
+	if !m.Dot1XPortctrlEnabled.IsNull() && !m.Dot1XPortctrlEnabled.IsUnknown() {
+		s.Dot1XPortctrlEnabled = m.Dot1XPortctrlEnabled.ValueBool()
+	}
+	if !m.FloodKnownProtocols.IsNull() && !m.FloodKnownProtocols.IsUnknown() {
+		s.FloodKnownProtocols = m.FloodKnownProtocols.ValueBool()
+	}
+	if !m.FlowctrlEnabled.IsNull() && !m.FlowctrlEnabled.IsUnknown() {
+		s.FlowctrlEnabled = m.FlowctrlEnabled.ValueBool()
+	}
+	if !m.ForwardUnknownMcastRouterPorts.IsNull() && !m.ForwardUnknownMcastRouterPorts.IsUnknown() {
+		s.ForwardUnknownMcastRouterPorts = m.ForwardUnknownMcastRouterPorts.ValueBool()
+	}
+	if !m.JumboframeEnabled.IsNull() && !m.JumboframeEnabled.IsUnknown() {
+		s.JumboframeEnabled = m.JumboframeEnabled.ValueBool()
+	}
+	if !m.RADIUSProfileID.IsNull() && !m.RADIUSProfileID.IsUnknown() {
+		s.RADIUSProfileID = m.RADIUSProfileID.ValueString()
+	}
+	if !m.StpVersion.IsNull() && !m.StpVersion.IsUnknown() {
+		s.StpVersion = m.StpVersion.ValueString()
+	}
 	if !m.SwitchExclusions.IsNull() && !m.SwitchExclusions.IsUnknown() {
 		var v []string
 		diags.Append(m.SwitchExclusions.ElementsAs(ctx, &v, false)...)

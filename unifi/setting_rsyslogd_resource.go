@@ -261,14 +261,34 @@ func (r *settingRsyslogdResource) applyModelToSetting(ctx context.Context, m *se
 		diags.Append(m.Contents.ElementsAs(ctx, &v, false)...)
 		s.Contents = v
 	}
-	s.Debug = m.Debug.ValueBool()
-	s.Enabled = m.Enabled.ValueBool()
-	s.IP = m.IP.ValueString()
-	s.LogAllContents = m.LogAllContents.ValueBool()
-	s.NetconsoleEnabled = m.NetconsoleEnabled.ValueBool()
-	s.NetconsoleHost = m.NetconsoleHost.ValueString()
-	s.NetconsolePort = int64PointerOrNil(m.NetconsolePort)
-	s.Port = int64PointerOrNil(m.Port)
-	s.ThisController = m.ThisController.ValueBool()
-	s.ThisControllerEncryptedOnly = m.ThisControllerEncryptedOnly.ValueBool()
+	if !m.Debug.IsNull() && !m.Debug.IsUnknown() {
+		s.Debug = m.Debug.ValueBool()
+	}
+	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
+		s.Enabled = m.Enabled.ValueBool()
+	}
+	if !m.IP.IsNull() && !m.IP.IsUnknown() {
+		s.IP = m.IP.ValueString()
+	}
+	if !m.LogAllContents.IsNull() && !m.LogAllContents.IsUnknown() {
+		s.LogAllContents = m.LogAllContents.ValueBool()
+	}
+	if !m.NetconsoleEnabled.IsNull() && !m.NetconsoleEnabled.IsUnknown() {
+		s.NetconsoleEnabled = m.NetconsoleEnabled.ValueBool()
+	}
+	if !m.NetconsoleHost.IsNull() && !m.NetconsoleHost.IsUnknown() {
+		s.NetconsoleHost = m.NetconsoleHost.ValueString()
+	}
+	if !m.NetconsolePort.IsNull() && !m.NetconsolePort.IsUnknown() {
+		s.NetconsolePort = int64PointerOrNil(m.NetconsolePort)
+	}
+	if !m.Port.IsNull() && !m.Port.IsUnknown() {
+		s.Port = int64PointerOrNil(m.Port)
+	}
+	if !m.ThisController.IsNull() && !m.ThisController.IsUnknown() {
+		s.ThisController = m.ThisController.ValueBool()
+	}
+	if !m.ThisControllerEncryptedOnly.IsNull() && !m.ThisControllerEncryptedOnly.IsUnknown() {
+		s.ThisControllerEncryptedOnly = m.ThisControllerEncryptedOnly.ValueBool()
+	}
 }

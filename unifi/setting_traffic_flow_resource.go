@@ -204,8 +204,16 @@ func (r *settingTrafficFlowResource) settingToModel(ctx context.Context, meta *u
 func (r *settingTrafficFlowResource) applyModelToSetting(ctx context.Context, m *settingTrafficFlowModel, s *settings.TrafficFlow, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.EnabledAllowedTraffic = m.EnabledAllowedTraffic.ValueBool()
-	s.GatewayDNSEnabled = m.GatewayDNSEnabled.ValueBool()
-	s.UnifiDeviceManagementEnabled = m.UnifiDeviceManagementEnabled.ValueBool()
-	s.UnifiServicesEnabled = m.UnifiServicesEnabled.ValueBool()
+	if !m.EnabledAllowedTraffic.IsNull() && !m.EnabledAllowedTraffic.IsUnknown() {
+		s.EnabledAllowedTraffic = m.EnabledAllowedTraffic.ValueBool()
+	}
+	if !m.GatewayDNSEnabled.IsNull() && !m.GatewayDNSEnabled.IsUnknown() {
+		s.GatewayDNSEnabled = m.GatewayDNSEnabled.ValueBool()
+	}
+	if !m.UnifiDeviceManagementEnabled.IsNull() && !m.UnifiDeviceManagementEnabled.IsUnknown() {
+		s.UnifiDeviceManagementEnabled = m.UnifiDeviceManagementEnabled.ValueBool()
+	}
+	if !m.UnifiServicesEnabled.IsNull() && !m.UnifiServicesEnabled.IsUnknown() {
+		s.UnifiServicesEnabled = m.UnifiServicesEnabled.ValueBool()
+	}
 }

@@ -190,6 +190,10 @@ func (r *settingAutoSpeedtestResource) settingToModel(ctx context.Context, meta 
 func (r *settingAutoSpeedtestResource) applyModelToSetting(ctx context.Context, m *settingAutoSpeedtestModel, s *settings.AutoSpeedtest, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.CronExpr = m.CronExpr.ValueString()
-	s.Enabled = m.Enabled.ValueBool()
+	if !m.CronExpr.IsNull() && !m.CronExpr.IsUnknown() {
+		s.CronExpr = m.CronExpr.ValueString()
+	}
+	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
+		s.Enabled = m.Enabled.ValueBool()
+	}
 }

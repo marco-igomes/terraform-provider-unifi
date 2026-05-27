@@ -205,7 +205,9 @@ func (r *settingMdnsResource) applyModelToSetting(ctx context.Context, m *settin
 			s.CustomServices = val
 		}
 	}
-	s.Mode = m.Mode.ValueString()
+	if !m.Mode.IsNull() && !m.Mode.IsUnknown() {
+		s.Mode = m.Mode.ValueString()
+	}
 	if !m.PredefinedServices.IsNull() && !m.PredefinedServices.IsUnknown() {
 		var val []settings.SettingMdnsPredefinedServices
 		if err := json.Unmarshal([]byte(m.PredefinedServices.ValueString()), &val); err != nil {

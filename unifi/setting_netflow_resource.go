@@ -256,19 +256,39 @@ func (r *settingNetflowResource) settingToModel(ctx context.Context, meta *ui.Se
 func (r *settingNetflowResource) applyModelToSetting(ctx context.Context, m *settingNetflowModel, s *settings.Netflow, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.AutoEngineIDEnabled = m.AutoEngineIDEnabled.ValueBool()
-	s.Enabled = m.Enabled.ValueBool()
-	s.EngineID = int64PointerOrNil(m.EngineID)
-	s.ExportFrequency = int64PointerOrNil(m.ExportFrequency)
+	if !m.AutoEngineIDEnabled.IsNull() && !m.AutoEngineIDEnabled.IsUnknown() {
+		s.AutoEngineIDEnabled = m.AutoEngineIDEnabled.ValueBool()
+	}
+	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
+		s.Enabled = m.Enabled.ValueBool()
+	}
+	if !m.EngineID.IsNull() && !m.EngineID.IsUnknown() {
+		s.EngineID = int64PointerOrNil(m.EngineID)
+	}
+	if !m.ExportFrequency.IsNull() && !m.ExportFrequency.IsUnknown() {
+		s.ExportFrequency = int64PointerOrNil(m.ExportFrequency)
+	}
 	if !m.NetworkIDs.IsNull() && !m.NetworkIDs.IsUnknown() {
 		var v []string
 		diags.Append(m.NetworkIDs.ElementsAs(ctx, &v, false)...)
 		s.NetworkIDs = v
 	}
-	s.Port = int64PointerOrNil(m.Port)
-	s.RefreshRate = int64PointerOrNil(m.RefreshRate)
-	s.SamplingMode = m.SamplingMode.ValueString()
-	s.SamplingRate = int64PointerOrNil(m.SamplingRate)
-	s.Server = m.Server.ValueString()
-	s.Version = int64PointerOrNil(m.Version)
+	if !m.Port.IsNull() && !m.Port.IsUnknown() {
+		s.Port = int64PointerOrNil(m.Port)
+	}
+	if !m.RefreshRate.IsNull() && !m.RefreshRate.IsUnknown() {
+		s.RefreshRate = int64PointerOrNil(m.RefreshRate)
+	}
+	if !m.SamplingMode.IsNull() && !m.SamplingMode.IsUnknown() {
+		s.SamplingMode = m.SamplingMode.ValueString()
+	}
+	if !m.SamplingRate.IsNull() && !m.SamplingRate.IsUnknown() {
+		s.SamplingRate = int64PointerOrNil(m.SamplingRate)
+	}
+	if !m.Server.IsNull() && !m.Server.IsUnknown() {
+		s.Server = m.Server.ValueString()
+	}
+	if !m.Version.IsNull() && !m.Version.IsUnknown() {
+		s.Version = int64PointerOrNil(m.Version)
+	}
 }

@@ -182,5 +182,7 @@ func (r *settingIpsecResource) settingToModel(ctx context.Context, meta *ui.Sett
 func (r *settingIpsecResource) applyModelToSetting(ctx context.Context, m *settingIpsecModel, s *settings.Ipsec, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
-	s.IKEv2ReauthenticationMethod = m.IKEv2ReauthenticationMethod.ValueString()
+	if !m.IKEv2ReauthenticationMethod.IsNull() && !m.IKEv2ReauthenticationMethod.IsUnknown() {
+		s.IKEv2ReauthenticationMethod = m.IKEv2ReauthenticationMethod.ValueString()
+	}
 }

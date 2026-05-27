@@ -330,12 +330,14 @@ func (r *{res_name}) writeAndRefresh(ctx context.Context, site string, m *{model
     parts.append("\treturn diags\n}\n\n")
 
     # applyModelToSetting
+    # Only overwrite SDK fields where the model has a real value (not null/unknown).
+    # This way fields the user did not declare retain their controller-current value
+    # (read into the SDK struct beforehand by writeAndRefresh).
     parts.append(f"func (r *{res_name}) applyModelToSetting(ctx context.Context, m *{model_name}, s *settings.{struct}, diags *diag.Diagnostics) {{\n")
     parts.append("\t_ = ctx\n\t_ = diags\n")
     for f in fields:
         _, _, helpers = tf_type_for(f["gotype"])
         if helpers.get("complex"):
-            # complex types: decode JSON from model string back to SDK type
             ctype = helpers["complex_type"]
             parts.append(f"\tif !m.{f['go']}.IsNull() && !m.{f['go']}.IsUnknown() {{\n")
             parts.append(f"\t\tvar val {ctype}\n")
@@ -351,7 +353,7 @@ func (r *{res_name}) writeAndRefresh(ctx context.Context, site string, m *{model
             parts.append("\t}\n")
         else:
             expr = helpers["to_sdk"].format(model="m", Go=f["go"])
-            parts.append(f"\ts.{f['go']} = {expr}\n")
+            parts.append(f"\tif !m.{f['go']}.IsNull() && !m.{f['go']}.IsUnknown() {{ s.{f['go']} = {expr} }}\n")
     parts.append("}\n")
 
     # Imports tidy: if no complex fields, json/diag may be unused; reference them via _ stmts
