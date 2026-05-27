@@ -309,6 +309,7 @@ func (p *unifiProvider) Resources(ctx context.Context) []func() resource.Resourc
 		NewSettingGlobalNatResource,
 		NewSettingGlobalNetworkResource,
 		NewSettingGlobalSwitchResource,
+		NewSettingGuestAccessResource,
 		NewSettingIgmpSnoopingResource,
 		NewSettingIpsResource,
 		NewSettingIpsecResource,

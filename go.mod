@@ -282,4 +282,4 @@ tool github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
 // Local fork pending upstream PR for numeric tx_power / channel unmarshal fix.
 // See: https://github.com/marco-igomes/go-unifi/tree/fix/udm-pro-import
-replace github.com/ubiquiti-community/go-unifi => github.com/marco-igomes/go-unifi v1.33.43-0.20260527184122-7730d1761091
+replace github.com/ubiquiti-community/go-unifi => github.com/marco-igomes/go-unifi v1.33.43-0.20260527202908-f8dfbee53b2b

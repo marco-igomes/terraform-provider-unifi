@@ -21,6 +21,7 @@ TARGETS = [
     ("global_nat","GlobalNat","global_nat","Global NAT mode toggle."),
     ("global_network","GlobalNetwork","global_network","Site-wide default security posture (allow-all vs zero-trust)."),
     ("global_switch","GlobalSwitch","global_switch","Switch-wide defaults: STP version, DHCP snooping, RADIUS profile."),
+    ("guest_access","GuestAccess","guest_access","Captive portal / guest hotspot configuration."),
     ("igmp_snooping","IgmpSnooping","igmp_snooping","Multicast (IGMP) snooping config: querier mode, subscription mode, flood behaviour."),
     ("ips","Ips","ips","IDS/IPS configuration: mode, enabled networks, categories, DNS filtering, ad-blocking."),
     ("ipsec","Ipsec","ipsec","Global IPsec parameters (e.g. IKEv2 reauthentication method)."),
@@ -55,7 +56,9 @@ def parse_struct(path: str, struct_name: str):
         name, gotype, jsontag, rest = fm.groups()
         json_name = jsontag.split(",")[0]
         comment = rest.strip().lstrip("//").strip() or ""
-        fields.append({"go": name, "gotype": gotype, "json": json_name, "tf": json_name, "comment": comment})
+        # tfsdk attribute names must be snake_case lowercase alphanumeric.
+        tf_name = snake(json_name) if any(c.isupper() for c in json_name) else json_name
+        fields.append({"go": name, "gotype": gotype, "json": json_name, "tf": tf_name, "comment": comment})
     return fields
 
 
