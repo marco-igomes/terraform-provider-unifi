@@ -393,7 +393,8 @@ func (r *clientResource) Create(
 			return
 		}
 
-		// MAC in use, just absorb the existing client
+		// MAC in use, adopt the existing controller record but push the planned
+		// fields on top so `name`/`blocked`/etc. from HCL reach the controller.
 		mac := plan.MAC.ValueString()
 		existingClient, err := r.client.GetClientByMAC(ctx, site, mac)
 		if err != nil {
@@ -404,16 +405,8 @@ func (r *clientResource) Create(
 			return
 		}
 
-		pclient, err := r.client.GetClient(ctx, site, existingClient.ID)
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error Getting Existing Client by ID",
-				"Could not get existing client with ID "+existingClient.ID+": "+err.Error(),
-			)
-		}
-
-		// Implement merge pattern for existing client
-		mergedClient := r.mergeClient(existingClient, pclient)
+		// Merge planned values (from `client`) over the existing controller record.
+		mergedClient := r.mergeClient(existingClient, client)
 		tflog.Info(ctx, "Merged Client: ")
 		updatedClient, err := r.client.UpdateClient(ctx, site, mergedClient)
 		if err != nil {
