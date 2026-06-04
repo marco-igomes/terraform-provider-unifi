@@ -952,7 +952,7 @@ func (r *clientResource) clientToModel(
 	model.ID = util.StringValueOrNull(client.ID)
 	model.Site = util.StringValueOrNull(site)
 	model.MAC = util.StringValueOrNull(client.MAC)
-	model.Name = util.StringValueOrNull(client.Name)
+	model.Name = types.StringValue(client.Name) // preserve "" so HCL `name = ""` round-trips clean.
 	model.DisplayName = util.StringValueOrNull(client.DisplayName)
 	model.Note = util.StringValueOrNull(client.Note)
 	model.FixedIP = util.StringValueOrNull(client.FixedIP)
