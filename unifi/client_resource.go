@@ -248,12 +248,12 @@ Clients are created in the controller when observed on the network, so the resou
 				},
 			},
 			"fixed_ip": schema.StringAttribute{
+				// Not Computed: a null/omitted fixed_ip must yield a real diff so an
+				// existing reservation can be cleared (write path sets use_fixedip=false
+				// when empty). Computed would treat null as "keep prior state", which
+				// silently blocks unfixing an IP via HCL.
 				MarkdownDescription: "A fixed IPv4 address for this client.",
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"fixed_ap_mac": schema.StringAttribute{
 				MarkdownDescription: "The MAC address of the access point to which this client should be fixed.",
@@ -948,7 +948,14 @@ func (r *clientResource) clientToModel(
 	model.Name = types.StringValue(client.Name) // preserve "" so HCL `name = ""` round-trips clean.
 	model.DisplayName = util.StringValueOrNull(client.DisplayName)
 	model.Note = util.StringValueOrNull(client.Note)
-	model.FixedIP = util.StringValueOrNull(client.FixedIP)
+	// The controller retains the fixed_ip string even when use_fixedip is false
+	// (the reservation is disabled, not deleted). Report null unless actually
+	// enforced, so a cleared reservation round-trips against `fixed_ip = null`.
+	if client.UseFixedIP {
+		model.FixedIP = util.StringValueOrNull(client.FixedIP)
+	} else {
+		model.FixedIP = types.StringNull()
+	}
 	model.FixedApMAC = util.StringValueOrNull(client.FixedApMAC)
 	model.NetworkID = util.StringValueOrNull(client.VirtualNetworkOverrideID)
 
