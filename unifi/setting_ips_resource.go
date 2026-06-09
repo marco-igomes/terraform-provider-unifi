@@ -36,8 +36,11 @@ type settingIpsResource struct {
 type settingIpsModel struct {
 	ID                                  types.String `tfsdk:"id"`
 	Site                                types.String `tfsdk:"site"`
+	AdBlockingConfigurations            types.String `tfsdk:"ad_blocking_configurations"`
 	AdvancedFilteringPreference         types.String `tfsdk:"advanced_filtering_preference"`
 	ContentFilteringBlockingPageEnabled types.Bool   `tfsdk:"content_filtering_blocking_page_enabled"`
+	DnsFiltering                        types.Bool   `tfsdk:"dns_filtering"`
+	DnsFilters                          types.String `tfsdk:"dns_filters"`
 	EnabledCategories                   types.List   `tfsdk:"enabled_categories"`
 	EnabledNetworks                     types.List   `tfsdk:"enabled_networks"`
 	Honeypot                            types.String `tfsdk:"honeypot"`
@@ -61,6 +64,11 @@ func (r *settingIpsResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Optional: true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
+			"ad_blocking_configurations": schema.StringAttribute{
+				MarkdownDescription: "ad_blocking_configurations field",
+				Optional:            true, Computed: true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
 			"advanced_filtering_preference": schema.StringAttribute{
 				MarkdownDescription: "|manual|disabled",
 				Optional:            true, Computed: true,
@@ -70,6 +78,16 @@ func (r *settingIpsResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "content_filtering_blocking_page_enabled field",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"dns_filtering": schema.BoolAttribute{
+				MarkdownDescription: "dns_filtering field",
+				Optional:            true, Computed: true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"dns_filters": schema.StringAttribute{
+				MarkdownDescription: "dns_filters field",
+				Optional:            true, Computed: true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"enabled_categories": schema.ListAttribute{
 				MarkdownDescription: "emerging-activex|emerging-attackresponse|botcc|emerging-chat|ciarmy|compromised|emerging-dns|emerging-dos|dshield|emerging-exploit|emerging-ftp|emerging-games|emerging-icmp|emerging-icmpinfo|emerging-imap|emerging-inappropriate|emerging-info|emerging-malware|emerging-misc|emerging-mobile|emerging-netbios|emerging-p2p|emerging-policy|emerging-pop3|emerging-rpc|emerging-scada|emerging-scan|emerging-shellcode|emerging-smtp|emerging-snmp|emerging-sql|emerging-telnet|emerging-tftp|tor|emerging-useragent|emerging-voip|emerging-webapps|emerging-webclient|emerging-webserver|emerging-worm|exploit-kit|adware-pup|botcc-portgrouped|phishing|threatview-cs-c2|3coresec|chat|coinminer|current-events|drop|hunting|icmp-info|inappropriate|info|ja3|policy|scada|dark-web-blocker-list|malicious-hosts",
@@ -234,8 +252,11 @@ func (r *settingIpsResource) settingToModel(ctx context.Context, meta *ui.Settin
 	m.Site = types.StringValue(site)
 	_ = ctx
 	_ = diags
+	m.AdBlockingConfigurations = jsonStringFrom(s.AdBlockingConfigurations)
 	m.AdvancedFilteringPreference = stringOrNull(s.AdvancedFilteringPreference)
 	m.ContentFilteringBlockingPageEnabled = types.BoolValue(s.ContentFilteringBlockingPageEnabled)
+	m.DnsFiltering = types.BoolValue(s.DnsFiltering)
+	m.DnsFilters = jsonStringFrom(s.DnsFilters)
 	m.EnabledCategories = stringListOrNull(ctx, s.EnabledCategories, &diags)
 	m.EnabledNetworks = stringListOrNull(ctx, s.EnabledNetworks, &diags)
 	m.Honeypot = jsonStringFrom(s.Honeypot)
@@ -250,11 +271,30 @@ func (r *settingIpsResource) settingToModel(ctx context.Context, meta *ui.Settin
 func (r *settingIpsResource) applyModelToSetting(ctx context.Context, m *settingIpsModel, s *settings.Ips, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
+	if !m.AdBlockingConfigurations.IsNull() && !m.AdBlockingConfigurations.IsUnknown() {
+		var val []settings.SettingIpsAdBlocking
+		if err := json.Unmarshal([]byte(m.AdBlockingConfigurations.ValueString()), &val); err != nil {
+			diags.AddError("Invalid ad_blocking_configurations", err.Error())
+		} else {
+			s.AdBlockingConfigurations = val
+		}
+	}
 	if !m.AdvancedFilteringPreference.IsNull() && !m.AdvancedFilteringPreference.IsUnknown() {
 		s.AdvancedFilteringPreference = m.AdvancedFilteringPreference.ValueString()
 	}
 	if !m.ContentFilteringBlockingPageEnabled.IsNull() && !m.ContentFilteringBlockingPageEnabled.IsUnknown() {
 		s.ContentFilteringBlockingPageEnabled = m.ContentFilteringBlockingPageEnabled.ValueBool()
+	}
+	if !m.DnsFiltering.IsNull() && !m.DnsFiltering.IsUnknown() {
+		s.DnsFiltering = m.DnsFiltering.ValueBool()
+	}
+	if !m.DnsFilters.IsNull() && !m.DnsFilters.IsUnknown() {
+		var val []settings.SettingIpsDnsFilter
+		if err := json.Unmarshal([]byte(m.DnsFilters.ValueString()), &val); err != nil {
+			diags.AddError("Invalid dns_filters", err.Error())
+		} else {
+			s.DnsFilters = val
+		}
 	}
 	if !m.EnabledCategories.IsNull() && !m.EnabledCategories.IsUnknown() {
 		var v []string

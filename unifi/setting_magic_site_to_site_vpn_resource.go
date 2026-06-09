@@ -32,9 +32,11 @@ type settingMagicSiteToSiteVpnResource struct {
 }
 
 type settingMagicSiteToSiteVpnModel struct {
-	ID      types.String `tfsdk:"id"`
-	Site    types.String `tfsdk:"site"`
-	Enabled types.Bool   `tfsdk:"enabled"`
+	ID          types.String `tfsdk:"id"`
+	Site        types.String `tfsdk:"site"`
+	Enabled     types.Bool   `tfsdk:"enabled"`
+	PublicKey   types.String `tfsdk:"public_key"`
+	XPrivateKey types.String `tfsdk:"x_private_key"`
 }
 
 func (r *settingMagicSiteToSiteVpnResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -54,6 +56,16 @@ func (r *settingMagicSiteToSiteVpnResource) Schema(_ context.Context, _ resource
 				MarkdownDescription: "enabled field",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"public_key": schema.StringAttribute{
+				MarkdownDescription: "Controller-generated.",
+				Optional:            true, Computed: true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"x_private_key": schema.StringAttribute{
+				MarkdownDescription: "Controller-generated.",
+				Optional:            true, Computed: true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 		},
 	}
@@ -177,6 +189,8 @@ func (r *settingMagicSiteToSiteVpnResource) settingToModel(ctx context.Context, 
 	_ = ctx
 	_ = diags
 	m.Enabled = types.BoolValue(s.Enabled)
+	m.PublicKey = stringOrNull(s.PublicKey)
+	m.XPrivateKey = stringOrNull(s.XPrivateKey)
 	return diags
 }
 
@@ -185,5 +199,11 @@ func (r *settingMagicSiteToSiteVpnResource) applyModelToSetting(ctx context.Cont
 	_ = diags
 	if !m.Enabled.IsNull() && !m.Enabled.IsUnknown() {
 		s.Enabled = m.Enabled.ValueBool()
+	}
+	if !m.PublicKey.IsNull() && !m.PublicKey.IsUnknown() {
+		s.PublicKey = m.PublicKey.ValueString()
+	}
+	if !m.XPrivateKey.IsNull() && !m.XPrivateKey.IsUnknown() {
+		s.XPrivateKey = m.XPrivateKey.ValueString()
 	}
 }

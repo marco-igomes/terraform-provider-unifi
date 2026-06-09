@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -31,9 +32,10 @@ type settingSslInspectionResource struct {
 }
 
 type settingSslInspectionModel struct {
-	ID    types.String `tfsdk:"id"`
-	Site  types.String `tfsdk:"site"`
-	State types.String `tfsdk:"state"`
+	ID                          types.String `tfsdk:"id"`
+	Site                        types.String `tfsdk:"site"`
+	IdentityCertificateAllUsers types.Bool   `tfsdk:"identity_certificate_all_users"`
+	State                       types.String `tfsdk:"state"`
 }
 
 func (r *settingSslInspectionResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -48,6 +50,11 @@ func (r *settingSslInspectionResource) Schema(_ context.Context, _ resource.Sche
 			"site": schema.StringAttribute{
 				Optional: true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
+			},
+			"identity_certificate_all_users": schema.BoolAttribute{
+				MarkdownDescription: "identity_certificate_all_users field",
+				Optional:            true, Computed: true,
+				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"state": schema.StringAttribute{
 				MarkdownDescription: "off|simple|advanced",
@@ -175,6 +182,7 @@ func (r *settingSslInspectionResource) settingToModel(ctx context.Context, meta 
 	m.Site = types.StringValue(site)
 	_ = ctx
 	_ = diags
+	m.IdentityCertificateAllUsers = types.BoolValue(s.IdentityCertificateAllUsers)
 	m.State = stringOrNull(s.State)
 	return diags
 }
@@ -182,6 +190,9 @@ func (r *settingSslInspectionResource) settingToModel(ctx context.Context, meta 
 func (r *settingSslInspectionResource) applyModelToSetting(ctx context.Context, m *settingSslInspectionModel, s *settings.SslInspection, diags *diag.Diagnostics) {
 	_ = ctx
 	_ = diags
+	if !m.IdentityCertificateAllUsers.IsNull() && !m.IdentityCertificateAllUsers.IsUnknown() {
+		s.IdentityCertificateAllUsers = m.IdentityCertificateAllUsers.ValueBool()
+	}
 	if !m.State.IsNull() && !m.State.IsUnknown() {
 		s.State = m.State.ValueString()
 	}

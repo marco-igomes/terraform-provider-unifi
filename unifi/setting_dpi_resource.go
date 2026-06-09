@@ -35,7 +35,7 @@ type settingDpiModel struct {
 	ID                    types.String `tfsdk:"id"`
 	Site                  types.String `tfsdk:"site"`
 	Enabled               types.Bool   `tfsdk:"enabled"`
-	FingerprintingEnabled types.Bool   `tfsdk:"fingerprintingEnabled"`
+	FingerprintingEnabled types.Bool   `tfsdk:"fingerprinting_enabled"`
 }
 
 func (r *settingDpiResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -56,7 +56,7 @@ func (r *settingDpiResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
-			"fingerprintingEnabled": schema.BoolAttribute{
+			"fingerprinting_enabled": schema.BoolAttribute{
 				MarkdownDescription: "fingerprintingEnabled field",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},

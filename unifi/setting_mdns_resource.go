@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -32,11 +33,13 @@ type settingMdnsResource struct {
 }
 
 type settingMdnsModel struct {
-	ID                 types.String `tfsdk:"id"`
-	Site               types.String `tfsdk:"site"`
-	CustomServices     types.String `tfsdk:"custom_services"`
-	Mode               types.String `tfsdk:"mode"`
-	PredefinedServices types.String `tfsdk:"predefined_services"`
+	ID                   types.String `tfsdk:"id"`
+	Site                 types.String `tfsdk:"site"`
+	CustomServices       types.String `tfsdk:"custom_services"`
+	EnabledFor           types.String `tfsdk:"enabled_for"`
+	EnabledForNetworkIDs types.List   `tfsdk:"enabled_for_network_ids"`
+	Mode                 types.String `tfsdk:"mode"`
+	PredefinedServices   types.String `tfsdk:"predefined_services"`
 }
 
 func (r *settingMdnsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -56,6 +59,17 @@ func (r *settingMdnsResource) Schema(_ context.Context, _ resource.SchemaRequest
 				MarkdownDescription: "custom_services field",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"enabled_for": schema.StringAttribute{
+				MarkdownDescription: "all|some|none",
+				Optional:            true, Computed: true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"enabled_for_network_ids": schema.ListAttribute{
+				MarkdownDescription: "enabled_for_network_ids field",
+				Optional:            true, Computed: true,
+				ElementType:   types.StringType,
+				PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
 			},
 			"mode": schema.StringAttribute{
 				MarkdownDescription: "all|auto|custom",
@@ -189,6 +203,8 @@ func (r *settingMdnsResource) settingToModel(ctx context.Context, meta *ui.Setti
 	_ = ctx
 	_ = diags
 	m.CustomServices = jsonStringFrom(s.CustomServices)
+	m.EnabledFor = stringOrNull(s.EnabledFor)
+	m.EnabledForNetworkIDs = stringListOrNull(ctx, s.EnabledForNetworkIDs, &diags)
 	m.Mode = stringOrNull(s.Mode)
 	m.PredefinedServices = jsonStringFrom(s.PredefinedServices)
 	return diags
@@ -204,6 +220,14 @@ func (r *settingMdnsResource) applyModelToSetting(ctx context.Context, m *settin
 		} else {
 			s.CustomServices = val
 		}
+	}
+	if !m.EnabledFor.IsNull() && !m.EnabledFor.IsUnknown() {
+		s.EnabledFor = m.EnabledFor.ValueString()
+	}
+	if !m.EnabledForNetworkIDs.IsNull() && !m.EnabledForNetworkIDs.IsUnknown() {
+		var v []string
+		diags.Append(m.EnabledForNetworkIDs.ElementsAs(ctx, &v, false)...)
+		s.EnabledForNetworkIDs = v
 	}
 	if !m.Mode.IsNull() && !m.Mode.IsUnknown() {
 		s.Mode = m.Mode.ValueString()
