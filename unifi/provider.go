@@ -318,6 +318,7 @@ func (p *unifiProvider) Resources(ctx context.Context) []func() resource.Resourc
 		NewSettingMdnsResource,
 		NewSettingNetflowResource,
 		NewSettingNtpResource,
+		NewSettingRadioAiResource,
 		NewSettingRoamingAssistantResource,
 		NewSettingRsyslogdResource,
 		NewSettingSslInspectionResource,

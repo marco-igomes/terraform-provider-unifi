@@ -6,6 +6,7 @@ emits unifi/setting_<key>_resource.go using a hand-rolled framework template.
 """
 import os
 import re
+import subprocess
 import sys
 
 SDK_DIR = "/Users/migomes/Projects/migomes/external/terraform/go-unifi/unifi/settings"
@@ -30,11 +31,38 @@ TARGETS = [
     ("mdns","Mdns","mdns","mDNS reflector configuration (cross-VLAN service discovery)."),
     ("netflow","Netflow","netflow","NetFlow/sFlow flow exporter configuration."),
     ("ntp","Ntp","ntp","NTP servers and manual/auto mode for controller time sync."),
+    ("radio_ai","RadioAi","radio_ai","RF auto-optimization (RF Scanning): auto channel/power selection, channel pools, blacklist."),
     ("roaming_assistant","RoamingAssistant","roaming_assistant","WiFi roaming assistant RSSI threshold (sticky-client mitigation)."),
     ("rsyslogd","Rsyslogd","rsyslogd","Remote syslog (rsyslogd) configuration."),
     ("ssl_inspection","SslInspection","ssl_inspection","TLS/SSL inspection on/off."),
     ("traffic_flow","TrafficFlow","traffic_flow","Traffic flow capture toggles."),
 ]
+
+# Hand-authored per-field descriptions, keyed by (setting key, tfsdk attribute
+# name). The ace.jar schema carries only validation (a regex/enum), so without
+# these the generated description is the raw regex or a "<field> field" stub.
+# Allowed values below are taken from that regex/enum; only verified behaviour.
+DESCRIPTIONS = {
+    ("radio_ai", "auto_adjust_channels_to_country"): "Constrain auto-selected channels to those permitted by the site's regulatory country.",
+    ("radio_ai", "auto_channel_presets_type"): 'Channel-selection preset. One of: "maximum_speed", "conservative", "custom".',
+    ("radio_ai", "channels_6e"): "6 GHz channel pool the optimizer may select from (JSON array of channel numbers).",
+    ("radio_ai", "channels_blacklist"): "Channels excluded from auto-selection (JSON array of {channel, channel_width, radio}).",
+    ("radio_ai", "channels_na"): "5 GHz channel pool the optimizer may select from (JSON array of channel numbers).",
+    ("radio_ai", "channels_ng"): "2.4 GHz channel pool the optimizer may select from (JSON array of channel numbers).",
+    ("radio_ai", "cron_expr"): "Cron expression for the scheduled optimization run.",
+    ("radio_ai", "default"): "Whether this is the controller's default RF-optimization profile.",
+    ("radio_ai", "enabled"): "Whether RF auto-optimization (RF Scanning) is enabled.",
+    ("radio_ai", "exclude_devices"): "MAC addresses of access points excluded from optimization.",
+    ("radio_ai", "high_priority_devices"): "MAC addresses of access points prioritized during optimization.",
+    ("radio_ai", "ht_modes_na"): 'Allowed 5 GHz channel widths in MHz. One or more of: "20", "40", "80", "160".',
+    ("radio_ai", "ht_modes_ng"): 'Allowed 2.4 GHz channel widths in MHz. One or more of: "20", "40".',
+    ("radio_ai", "optimize"): 'What RF auto-optimization adjusts. One or more of: "channel", "power".',
+    ("radio_ai", "radios"): 'Radio bands to optimize. One or more of: "na" (5 GHz), "ng" (2.4 GHz), "6e" (6 GHz).',
+    ("radio_ai", "radios_configuration"): "Per-radio optimization settings (JSON array of {radio, channel_width, dfs}).",
+    ("radio_ai", "setting_preference"): 'Whether these settings are auto-managed or manual. One of: "auto", "manual".',
+    ("radio_ai", "use_xy"): "Use the X/Y placement-based optimizer.",
+}
+
 
 FIELD_RE = re.compile(r"^\t([A-Z]\w+)\s+(\[?\]?\*?[A-Za-z0-9_.]+)\s+`json:\"([^\"]+)\"`(.*)$", re.M)
 
@@ -103,14 +131,22 @@ def tf_type_for(gotype: str):
                  "plan_mod_pkg": "listplanmodifier",
                  "list_kw": "ElementType: types.StringType,"})
     # complex types -> JSON-string attribute (Computed-only, lossless round trip)
-    # Prefix referenced types with `settings.` package qualifier.
+    # Prefix referenced types with `settings.` package qualifier, but leave Go
+    # builtins (e.g. the element type of []int64) unqualified.
+    GO_BUILTINS = {"int", "int8", "int16", "int32", "int64",
+                   "uint", "uint8", "uint16", "uint32", "uint64",
+                   "string", "bool", "float32", "float64", "byte", "rune"}
+
+    def _qualify(t):
+        return t if t in GO_BUILTINS else "settings." + t
+
     qualified = gotype
     if qualified.startswith("[]"):
-        qualified = "[]settings." + qualified[2:]
+        qualified = "[]" + _qualify(qualified[2:])
     elif qualified.startswith("*"):
-        qualified = "*settings." + qualified[1:]
+        qualified = "*" + _qualify(qualified[1:])
     else:
-        qualified = "settings." + qualified
+        qualified = _qualify(qualified)
     return ("types.String", "schema.StringAttribute",
             {"to_model": "jsonStringFrom({src}.{Go})",
              "to_sdk":   None,  # complex -> JSON; needs custom decoding, see emit
@@ -204,9 +240,10 @@ func (r *{res_name}) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
     # Per-field schema
     for f in fields:
         _, attr_ctor, helpers = tf_type_for(f["gotype"])
-        comment = f["comment"].replace("\\", "\\\\").replace('"', '\\"').strip()
-        if not comment:
-            comment = f"{f['json']} field"
+        # Prefer a hand-authored description; fall back to the SDK comment
+        # (usually the raw regex/enum), then to a bare stub.
+        raw_desc = DESCRIPTIONS.get((key, f["tf"])) or f["comment"] or f"{f['json']} field"
+        comment = raw_desc.replace("\\", "\\\\").replace('"', '\\"').strip()
         pm_pkg = helpers["plan_mod_pkg"]
         pm_type = {"boolplanmodifier": "Bool", "stringplanmodifier": "String",
                    "int64planmodifier": "Int64", "listplanmodifier": "List"}[pm_pkg]
@@ -369,6 +406,15 @@ func (r *{res_name}) writeAndRefresh(ctx context.Context, site string, m *{model
     return "".join(parts), has_complex, has_list, plan_mod_pkgs
 
 
+def gofmt(src: str, path: str) -> str:
+    """Run the emitted source through gofmt so a fresh regen is a zero-diff
+    no-op against the (already gofmt'd) committed files."""
+    p = subprocess.run(["gofmt"], input=src, capture_output=True, text=True)
+    if p.returncode != 0:
+        raise SystemExit(f"gofmt failed for {path}:\n{p.stderr}")
+    return p.stdout
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     new_funcs = []
@@ -396,6 +442,7 @@ def main():
         out = header + body
 
         outpath = os.path.join(OUT_DIR, f"setting_{key}_resource.go")
+        out = gofmt(out, outpath)
         open(outpath, "w").write(out)
         new_funcs.append(f"NewSetting{struct}Resource")
         print(f"WROTE {outpath}  ({len(fields)} fields)")
