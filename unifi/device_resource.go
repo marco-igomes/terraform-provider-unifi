@@ -106,6 +106,7 @@ type deviceResourceModel struct {
 	Model   types.String `tfsdk:"model"`
 	Type    types.String `tfsdk:"type"`
 	State   types.Int64  `tfsdk:"state"`
+	Version types.String `tfsdk:"version"`
 }
 
 // portOverrideModel describes the port override data model.
@@ -526,6 +527,11 @@ func (r *deviceResource) Schema(
 				Description:   "Device state.",
 				Computed:      true,
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+			},
+			"version": schema.StringAttribute{
+				Description:   "Firmware version reported by the controller.",
+				Computed:      true,
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 
 			// Radio table.
@@ -1503,6 +1509,12 @@ func (r *deviceResource) setResourceData(
 
 	// State is always present as int64
 	model.State = types.Int64Value(int64(device.State))
+
+	if device.Version == "" {
+		model.Version = types.StringNull()
+	} else {
+		model.Version = types.StringValue(device.Version)
+	}
 
 	// LED settings
 	if device.LedOverride == "" {
