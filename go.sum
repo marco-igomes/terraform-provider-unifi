@@ -435,6 +435,8 @@ github.com/marco-igomes/go-unifi v1.33.43-0.20260609081145-e46bed89f00e h1:mShIB
 github.com/marco-igomes/go-unifi v1.33.43-0.20260609081145-e46bed89f00e/go.mod h1:lOld3iJD/7eXE5+phOVWz3Y45qTlb73g24tPipLIkac=
 github.com/marco-igomes/go-unifi v1.33.43-0.20260622215616-eb93880fb4ba h1:JbAxVPGtXQV+Bmv68HQ1hVU00OFLKrrUuFCYCLXTv7c=
 github.com/marco-igomes/go-unifi v1.33.43-0.20260622215616-eb93880fb4ba/go.mod h1:lOld3iJD/7eXE5+phOVWz3Y45qTlb73g24tPipLIkac=
+github.com/marco-igomes/go-unifi v1.33.43-0.20260630221854-6a614e84e45c h1:cyCu4Z0Jkak+7YmKfPFL3Ma6Oq1g+bFL/WEIc08UmFU=
+github.com/marco-igomes/go-unifi v1.33.43-0.20260630221854-6a614e84e45c/go.mod h1:lOld3iJD/7eXE5+phOVWz3Y45qTlb73g24tPipLIkac=
 github.com/mattn/go-colorable v0.1.9/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
 github.com/mattn/go-colorable v0.1.12/go.mod h1:u5H1YNBxpqRaxsYJYSkiCWKzEfiAb1Gb520KVy5xxl4=
 github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
