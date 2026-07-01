@@ -758,7 +758,7 @@ func (r *firewallPolicyResource) policyToModel(
 	model.OriginType = stringOrNull(policy.OriginType)
 
 	if len(policy.ConnectionStates) == 0 {
-		model.ConnectionStates = types.ListNull(types.StringType)
+		model.ConnectionStates = types.ListValueMust(types.StringType, nil)
 	} else {
 		vals := make([]attr.Value, len(policy.ConnectionStates))
 		for i, s := range policy.ConnectionStates {

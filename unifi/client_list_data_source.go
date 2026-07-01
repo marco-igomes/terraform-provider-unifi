@@ -601,7 +601,7 @@ func networkIDValue(c *gounifi.Client) types.String {
 
 func stringSliceToList(s []string) basetypes.ListValue {
 	if len(s) == 0 {
-		return types.ListNull(types.StringType)
+		return types.ListValueMust(types.StringType, nil)
 	}
 	elements := make([]attr.Value, len(s))
 	for i, v := range s {

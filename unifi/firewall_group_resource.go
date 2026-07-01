@@ -372,7 +372,7 @@ func (r *firewallGroupResource) setResourceData(
 	}
 
 	if len(firewallGroup.GroupMembers) == 0 {
-		model.Members = types.SetNull(types.StringType)
+		model.Members = types.SetValueMust(types.StringType, nil)
 	} else {
 		membersList := make([]types.String, len(firewallGroup.GroupMembers))
 		for i, member := range firewallGroup.GroupMembers {

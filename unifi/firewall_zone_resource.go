@@ -278,7 +278,7 @@ func (r *firewallZoneResource) zoneToModel(
 	model.DefaultZone = types.BoolValue(zone.DefaultZone)
 
 	if len(zone.NetworkIDs) == 0 {
-		model.NetworkIDs = types.SetNull(types.StringType)
+		model.NetworkIDs = types.SetValueMust(types.StringType, nil)
 		return diags
 	}
 	vals := make([]attr.Value, len(zone.NetworkIDs))
