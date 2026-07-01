@@ -105,7 +105,7 @@ func (r *settingRadioAiResource) Schema(_ context.Context, _ resource.SchemaRequ
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"default": schema.BoolAttribute{
-				MarkdownDescription: "Whether this is the controller's default RF-optimization profile.",
+				MarkdownDescription: "Whether the Channel Plan is unmodified (controller-set; the \"Restore to Defaults\" state).",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -159,7 +159,7 @@ func (r *settingRadioAiResource) Schema(_ context.Context, _ resource.SchemaRequ
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"use_xy": schema.BoolAttribute{
-				MarkdownDescription: "Use the X/Y placement-based optimizer.",
+				MarkdownDescription: "Controller-internal flag; no corresponding control found in the RF/WiFi UI.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},

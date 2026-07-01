@@ -50,7 +50,7 @@ DESCRIPTIONS = {
     ("radio_ai", "channels_na"): "5 GHz channel pool the optimizer may select from (JSON array of channel numbers).",
     ("radio_ai", "channels_ng"): "2.4 GHz channel pool the optimizer may select from (JSON array of channel numbers).",
     ("radio_ai", "cron_expr"): "Cron expression for the scheduled optimization run.",
-    ("radio_ai", "default"): "Whether this is the controller's default RF-optimization profile.",
+    ("radio_ai", "default"): 'Whether the Channel Plan is unmodified (controller-set; the "Restore to Defaults" state).',
     ("radio_ai", "enabled"): "Whether RF auto-optimization (RF Scanning) is enabled.",
     ("radio_ai", "exclude_devices"): "MAC addresses of access points excluded from optimization.",
     ("radio_ai", "high_priority_devices"): "MAC addresses of access points prioritized during optimization.",
@@ -60,7 +60,7 @@ DESCRIPTIONS = {
     ("radio_ai", "radios"): 'Radio bands to optimize. One or more of: "na" (5 GHz), "ng" (2.4 GHz), "6e" (6 GHz).',
     ("radio_ai", "radios_configuration"): "Per-radio optimization settings (JSON array of {radio, channel_width, dfs}).",
     ("radio_ai", "setting_preference"): 'Whether these settings are auto-managed or manual. One of: "auto", "manual".',
-    ("radio_ai", "use_xy"): "Use the X/Y placement-based optimizer.",
+    ("radio_ai", "use_xy"): "Controller-internal flag; no corresponding control found in the RF/WiFi UI.",
 }
 
 
