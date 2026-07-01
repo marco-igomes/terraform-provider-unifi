@@ -191,7 +191,7 @@ func (r *settingDohResource) settingToModel(ctx context.Context, meta *ui.Settin
 	_ = ctx
 	_ = diags
 	m.CustomServers = jsonStringFrom(s.CustomServers)
-	m.ServerNames = stringListOrNull(ctx, s.ServerNames, &diags)
+	m.ServerNames = stringList(ctx, s.ServerNames, &diags)
 	m.State = stringOrNull(s.State)
 	return diags
 }

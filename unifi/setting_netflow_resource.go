@@ -243,7 +243,7 @@ func (r *settingNetflowResource) settingToModel(ctx context.Context, meta *ui.Se
 	m.Enabled = types.BoolValue(s.Enabled)
 	m.EngineID = types.Int64PointerValue(s.EngineID)
 	m.ExportFrequency = types.Int64PointerValue(s.ExportFrequency)
-	m.NetworkIDs = stringListOrNull(ctx, s.NetworkIDs, &diags)
+	m.NetworkIDs = stringList(ctx, s.NetworkIDs, &diags)
 	m.Port = types.Int64PointerValue(s.Port)
 	m.RefreshRate = types.Int64PointerValue(s.RefreshRate)
 	m.SamplingMode = stringOrNull(s.SamplingMode)

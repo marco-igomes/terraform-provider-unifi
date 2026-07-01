@@ -796,8 +796,8 @@ func endpointSourceToObject(
 		Port:                  types.Int64PointerValue(src.Port),
 		PortGroupID:           stringOrNull(src.PortGroupID),
 		PortMatchingType:      stringOrNull(src.PortMatchingType),
-		IPs:                   stringListOrNull(ctx, src.IPs, diags),
-		NetworkIDs:            stringListOrNull(ctx, src.NetworkIDs, diags),
+		IPs:                   stringList(ctx, src.IPs, diags),
+		NetworkIDs:            stringList(ctx, src.NetworkIDs, diags),
 	}
 	obj, d := types.ObjectValueFrom(ctx, firewallPolicyEndpointAttrTypes(), ep)
 	diags.Append(d...)
@@ -824,8 +824,8 @@ func endpointDestinationToObject(
 		Port:                  types.Int64PointerValue(dst.Port),
 		PortGroupID:           stringOrNull(dst.PortGroupID),
 		PortMatchingType:      stringOrNull(dst.PortMatchingType),
-		IPs:                   stringListOrNull(ctx, dst.IPs, diags),
-		NetworkIDs:            stringListOrNull(ctx, dst.NetworkIDs, diags),
+		IPs:                   stringList(ctx, dst.IPs, diags),
+		NetworkIDs:            stringList(ctx, dst.NetworkIDs, diags),
 	}
 	obj, d := types.ObjectValueFrom(ctx, firewallPolicyEndpointAttrTypes(), ep)
 	diags.Append(d...)
@@ -848,21 +848,21 @@ func scheduleToObject(
 		TimeAllDay:     types.BoolValue(s.TimeAllDay),
 		TimeRangeStart: stringOrNull(s.TimeRangeStart),
 		TimeRangeEnd:   stringOrNull(s.TimeRangeEnd),
-		RepeatOnDays:   stringListOrNull(ctx, s.RepeatOnDays, diags),
+		RepeatOnDays:   stringList(ctx, s.RepeatOnDays, diags),
 	}
 	obj, d := types.ObjectValueFrom(ctx, firewallPolicyScheduleAttrTypes(), sm)
 	diags.Append(d...)
 	return obj
 }
 
-func stringListOrNull(
+// stringList converts a slice to a list attribute, preserving an empty slice as
+// an empty list (not null) so empty lists round-trip cleanly and can be declared
+// explicitly in HCL.
+func stringList(
 	ctx context.Context,
 	xs []string,
 	diags *diag.Diagnostics,
 ) types.List {
-	if len(xs) == 0 {
-		return types.ListNull(types.StringType)
-	}
 	vals := make([]attr.Value, len(xs))
 	for i, s := range xs {
 		vals[i] = types.StringValue(s)

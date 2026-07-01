@@ -246,7 +246,7 @@ func (r *settingGlobalSwitchResource) settingToModel(ctx context.Context, meta *
 	m.Site = types.StringValue(site)
 	_ = ctx
 	_ = diags
-	m.AclDeviceIsolation = stringListOrNull(ctx, s.AclDeviceIsolation, &diags)
+	m.AclDeviceIsolation = stringList(ctx, s.AclDeviceIsolation, &diags)
 	m.AclL3Isolation = jsonStringFrom(s.AclL3Isolation)
 	m.DHCPSnoop = types.BoolValue(s.DHCPSnoop)
 	m.Dot1XFallbackNetworkID = stringOrNull(s.Dot1XFallbackNetworkID)
@@ -257,7 +257,7 @@ func (r *settingGlobalSwitchResource) settingToModel(ctx context.Context, meta *
 	m.JumboframeEnabled = types.BoolValue(s.JumboframeEnabled)
 	m.RADIUSProfileID = stringOrNull(s.RADIUSProfileID)
 	m.StpVersion = stringOrNull(s.StpVersion)
-	m.SwitchExclusions = stringListOrNull(ctx, s.SwitchExclusions, &diags)
+	m.SwitchExclusions = stringList(ctx, s.SwitchExclusions, &diags)
 	return diags
 }
 

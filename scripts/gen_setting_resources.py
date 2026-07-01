@@ -125,7 +125,7 @@ def tf_type_for(gotype: str):
                  "list_kw": ""})
     if gotype == "[]string":
         return ("types.List", "schema.ListAttribute",
-                {"to_model": "stringListOrNull(ctx, {src}.{Go}, &diags)",
+                {"to_model": "stringList(ctx, {src}.{Go}, &diags)",
                  "to_sdk":   "stringSliceFromList(ctx, {model}.{Go}, &diags)",
                  "plan_mod": "listplanmodifier.UseStateForUnknown()",
                  "plan_mod_pkg": "listplanmodifier",

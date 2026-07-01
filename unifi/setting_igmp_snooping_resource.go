@@ -263,18 +263,18 @@ func (r *settingIgmpSnoopingResource) settingToModel(ctx context.Context, meta *
 	_ = diags
 	m.Enabled = types.BoolValue(s.Enabled)
 	m.FailoverQuerier = stringOrNull(s.FailoverQuerier)
-	m.FastleaveForNetworkIDs = stringListOrNull(ctx, s.FastleaveForNetworkIDs, &diags)
+	m.FastleaveForNetworkIDs = stringList(ctx, s.FastleaveForNetworkIDs, &diags)
 	m.FloodKnownProtocols = types.BoolValue(s.FloodKnownProtocols)
-	m.FloodUnknownMulticastForNetworkIDs = stringListOrNull(ctx, s.FloodUnknownMulticastForNetworkIDs, &diags)
+	m.FloodUnknownMulticastForNetworkIDs = stringList(ctx, s.FloodUnknownMulticastForNetworkIDs, &diags)
 	m.ForwardUnknownMcastRouterPorts = types.BoolValue(s.ForwardUnknownMcastRouterPorts)
-	m.NetworkIDs = stringListOrNull(ctx, s.NetworkIDs, &diags)
+	m.NetworkIDs = stringList(ctx, s.NetworkIDs, &diags)
 	m.PrimaryQuerier = stringOrNull(s.PrimaryQuerier)
-	m.QuerierAddresses = stringListOrNull(ctx, s.QuerierAddresses, &diags)
+	m.QuerierAddresses = stringList(ctx, s.QuerierAddresses, &diags)
 	m.QuerierMode = stringOrNull(s.QuerierMode)
 	m.QuerierSubscriptionMode = stringOrNull(s.QuerierSubscriptionMode)
-	m.QuerierSwitches = stringListOrNull(ctx, s.QuerierSwitches, &diags)
+	m.QuerierSwitches = stringList(ctx, s.QuerierSwitches, &diags)
 	m.SubscriptionMode = stringOrNull(s.SubscriptionMode)
-	m.Switches = stringListOrNull(ctx, s.Switches, &diags)
+	m.Switches = stringList(ctx, s.Switches, &diags)
 	return diags
 }
 

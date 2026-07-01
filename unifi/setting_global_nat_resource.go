@@ -183,7 +183,7 @@ func (r *settingGlobalNatResource) settingToModel(ctx context.Context, meta *ui.
 	m.Site = types.StringValue(site)
 	_ = ctx
 	_ = diags
-	m.ExcludedNetworkIDs = stringListOrNull(ctx, s.ExcludedNetworkIDs, &diags)
+	m.ExcludedNetworkIDs = stringList(ctx, s.ExcludedNetworkIDs, &diags)
 	m.Mode = stringOrNull(s.Mode)
 	return diags
 }

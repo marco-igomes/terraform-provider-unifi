@@ -204,7 +204,7 @@ func (r *settingMdnsResource) settingToModel(ctx context.Context, meta *ui.Setti
 	_ = diags
 	m.CustomServices = jsonStringFrom(s.CustomServices)
 	m.EnabledFor = stringOrNull(s.EnabledFor)
-	m.EnabledForNetworkIDs = stringListOrNull(ctx, s.EnabledForNetworkIDs, &diags)
+	m.EnabledForNetworkIDs = stringList(ctx, s.EnabledForNetworkIDs, &diags)
 	m.Mode = stringOrNull(s.Mode)
 	m.PredefinedServices = jsonStringFrom(s.PredefinedServices)
 	return diags

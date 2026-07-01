@@ -239,7 +239,7 @@ func (r *settingRsyslogdResource) settingToModel(ctx context.Context, meta *ui.S
 	m.Site = types.StringValue(site)
 	_ = ctx
 	_ = diags
-	m.Contents = stringListOrNull(ctx, s.Contents, &diags)
+	m.Contents = stringList(ctx, s.Contents, &diags)
 	m.Debug = types.BoolValue(s.Debug)
 	m.Enabled = types.BoolValue(s.Enabled)
 	m.IP = stringOrNull(s.IP)
