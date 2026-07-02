@@ -56,12 +56,12 @@ func (r *settingConnectivityResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
 			"enable_isolated_wlan": schema.BoolAttribute{
-				MarkdownDescription: "enable_isolated_wlan field",
+				MarkdownDescription: "Undocumented boolean in the connectivity (uplink/mesh) setting — no prose in ace.jar or any UniFi API client/docs. At controller default.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "enabled field",
+				MarkdownDescription: "Whether the controller's uplink connectivity check is enabled.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -81,7 +81,7 @@ func (r *settingConnectivityResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"uplink_type": schema.StringAttribute{
-				MarkdownDescription: "uplink_type field",
+				MarkdownDescription: "Uplink-check target. One of \"gateway\" or \"custom\".",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},

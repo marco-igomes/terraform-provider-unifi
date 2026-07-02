@@ -65,7 +65,7 @@ func (r *settingIgmpSnoopingResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
 			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "enabled field",
+				MarkdownDescription: "Whether IGMP snooping is enabled on the site.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -81,7 +81,7 @@ func (r *settingIgmpSnoopingResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
 			},
 			"flood_known_protocols": schema.BoolAttribute{
-				MarkdownDescription: "flood_known_protocols field",
+				MarkdownDescription: "Flood traffic for protocols the snooping table can't classify.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -92,7 +92,7 @@ func (r *settingIgmpSnoopingResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
 			},
 			"forward_unknown_mcast_router_ports": schema.BoolAttribute{
-				MarkdownDescription: "forward_unknown_mcast_router_ports field",
+				MarkdownDescription: "Forward unknown multicast on router ports (preserves discovery).",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},

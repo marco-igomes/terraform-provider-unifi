@@ -52,7 +52,7 @@ func (r *settingSslInspectionResource) Schema(_ context.Context, _ resource.Sche
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
 			"identity_certificate_all_users": schema.BoolAttribute{
-				MarkdownDescription: "identity_certificate_all_users field",
+				MarkdownDescription: "Apply the identity cert to all users (used when state = \"on\").",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},

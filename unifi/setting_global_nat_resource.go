@@ -52,7 +52,7 @@ func (r *settingGlobalNatResource) Schema(_ context.Context, _ resource.SchemaRe
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
 			"excluded_network_ids": schema.ListAttribute{
-				MarkdownDescription: "excluded_network_ids field",
+				MarkdownDescription: "Networks excluded from global NAT (none).",
 				Optional:            true, Computed: true,
 				ElementType:   types.StringType,
 				PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},

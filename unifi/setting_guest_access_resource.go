@@ -174,7 +174,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"authorize_use_sandbox": schema.BoolAttribute{
-				MarkdownDescription: "authorize_use_sandbox field",
+				MarkdownDescription: "Authorize.Net sandbox mode.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -184,7 +184,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"ec_enabled": schema.BoolAttribute{
-				MarkdownDescription: "ec_enabled field",
+				MarkdownDescription: "Send NSE (Encrypted Client Hello / SNI hide) hints.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -214,17 +214,17 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"facebook_enabled": schema.BoolAttribute{
-				MarkdownDescription: "facebook_enabled field",
+				MarkdownDescription: "Facebook social login.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"facebook_scope_email": schema.BoolAttribute{
-				MarkdownDescription: "facebook_scope_email field",
+				MarkdownDescription: "Request email scope from Facebook.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"facebook_wifi_block_https": schema.BoolAttribute{
-				MarkdownDescription: "facebook_wifi_block_https field",
+				MarkdownDescription: "Block HTTPS until Facebook check-in completes.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -234,7 +234,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"facebook_wifi_gw_name": schema.StringAttribute{
-				MarkdownDescription: "facebook_wifi_gw_name field",
+				MarkdownDescription: "FB-Wi-Fi gateway display name (unused — facebook_enabled = false).",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
@@ -264,12 +264,12 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"google_enabled": schema.BoolAttribute{
-				MarkdownDescription: "google_enabled field",
+				MarkdownDescription: "Google social login.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"google_scope_email": schema.BoolAttribute{
-				MarkdownDescription: "google_scope_email field",
+				MarkdownDescription: "Request email scope from Google.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -279,7 +279,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"ippay_use_sandbox": schema.BoolAttribute{
-				MarkdownDescription: "ippay_use_sandbox field",
+				MarkdownDescription: "IPpay sandbox mode.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -299,7 +299,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"merchantwarrior_use_sandbox": schema.BoolAttribute{
-				MarkdownDescription: "merchantwarrior_use_sandbox field",
+				MarkdownDescription: "MerchantWarrior sandbox mode.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -309,12 +309,12 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"password_enabled": schema.BoolAttribute{
-				MarkdownDescription: "password_enabled field",
+				MarkdownDescription: "Simple shared-password gate.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"payment_enabled": schema.BoolAttribute{
-				MarkdownDescription: "payment_enabled field",
+				MarkdownDescription: "Paid-access via a payment gateway.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -329,7 +329,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"paypal_use_sandbox": schema.BoolAttribute{
-				MarkdownDescription: "paypal_use_sandbox field",
+				MarkdownDescription: "PayPal sandbox mode.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -339,12 +339,12 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_customized": schema.BoolAttribute{
-				MarkdownDescription: "portal_customized field",
+				MarkdownDescription: "Whether portal appearance overrides the default theme.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"portal_customized_authentication_text": schema.StringAttribute{
-				MarkdownDescription: "portal_customized_authentication_text field",
+				MarkdownDescription: "Heading shown above the auth-method picker.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
@@ -354,7 +354,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_customized_bg_image_enabled": schema.BoolAttribute{
-				MarkdownDescription: "portal_customized_bg_image_enabled field",
+				MarkdownDescription: "Use a background image instead of a solid colour.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -364,7 +364,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_customized_bg_image_tile": schema.BoolAttribute{
-				MarkdownDescription: "portal_customized_bg_image_tile field",
+				MarkdownDescription: "Tile the background image.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -404,7 +404,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_customized_button_text": schema.StringAttribute{
-				MarkdownDescription: "portal_customized_button_text field",
+				MarkdownDescription: "Primary CTA button label.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
@@ -425,7 +425,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_customized_logo_enabled": schema.BoolAttribute{
-				MarkdownDescription: "portal_customized_logo_enabled field",
+				MarkdownDescription: "Whether the customised logo is displayed at all.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -445,7 +445,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			},
 			"portal_customized_success_text": schema.StringAttribute{
-				MarkdownDescription: "portal_customized_success_text field",
+				MarkdownDescription: "Text shown on successful login.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
@@ -455,17 +455,17 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_customized_title": schema.StringAttribute{
-				MarkdownDescription: "portal_customized_title field",
+				MarkdownDescription: "Browser tab title and portal heading.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_customized_tos": schema.StringAttribute{
-				MarkdownDescription: "portal_customized_tos field",
+				MarkdownDescription: "Terms of service body shown to guests before they can connect.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_customized_tos_enabled": schema.BoolAttribute{
-				MarkdownDescription: "portal_customized_tos_enabled field",
+				MarkdownDescription: "Require guests to accept the Terms of Service.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -485,7 +485,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_customized_welcome_text_enabled": schema.BoolAttribute{
-				MarkdownDescription: "portal_customized_welcome_text_enabled field",
+				MarkdownDescription: "Show a welcome-text block on the portal.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -495,7 +495,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_enabled": schema.BoolAttribute{
-				MarkdownDescription: "portal_enabled field",
+				MarkdownDescription: "Master switch for the guest captive portal.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -505,7 +505,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"portal_use_hostname": schema.BoolAttribute{
-				MarkdownDescription: "portal_use_hostname field",
+				MarkdownDescription: "Redirect guests to a hostname instead of the controller IP.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -525,7 +525,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"quickpay_testmode": schema.BoolAttribute{
-				MarkdownDescription: "quickpay_testmode field",
+				MarkdownDescription: "QuickPay test mode.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -535,7 +535,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"radius_disconnect_enabled": schema.BoolAttribute{
-				MarkdownDescription: "radius_disconnect_enabled field",
+				MarkdownDescription: "Honour RADIUS CoA / Disconnect messages.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -545,27 +545,27 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			},
 			"radius_enabled": schema.BoolAttribute{
-				MarkdownDescription: "radius_enabled field",
+				MarkdownDescription: "RADIUS-backed portal auth.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"radiusprofile_id": schema.StringAttribute{
-				MarkdownDescription: "radiusprofile_id field",
+				MarkdownDescription: "RADIUS profile used for portal auth (only when auth = \"hotspot\").",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"redirect_enabled": schema.BoolAttribute{
-				MarkdownDescription: "redirect_enabled field",
+				MarkdownDescription: "Redirect guests to an external URL after login.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"redirect_https": schema.BoolAttribute{
-				MarkdownDescription: "redirect_https field",
+				MarkdownDescription: "Send the post-login redirect over HTTPS.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"redirect_to_https": schema.BoolAttribute{
-				MarkdownDescription: "redirect_to_https field",
+				MarkdownDescription: "Force that redirect to HTTPS.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -575,7 +575,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"restricted_dns_enabled": schema.BoolAttribute{
-				MarkdownDescription: "restricted_dns_enabled field",
+				MarkdownDescription: "Apply a restricted DNS server set to guests pre-auth.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -601,12 +601,12 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"voucher_customized": schema.BoolAttribute{
-				MarkdownDescription: "voucher_customized field",
+				MarkdownDescription: "Customised voucher portal.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"voucher_enabled": schema.BoolAttribute{
-				MarkdownDescription: "voucher_enabled field",
+				MarkdownDescription: "Voucher-code auth.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -621,7 +621,7 @@ func (r *settingGuestAccessResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"wechat_enabled": schema.BoolAttribute{
-				MarkdownDescription: "wechat_enabled field",
+				MarkdownDescription: "WeChat social login.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},

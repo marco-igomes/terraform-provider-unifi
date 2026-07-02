@@ -69,12 +69,12 @@ func (r *settingRsyslogdResource) Schema(_ context.Context, _ resource.SchemaReq
 				PlanModifiers: []planmodifier.List{listplanmodifier.UseStateForUnknown()},
 			},
 			"debug": schema.BoolAttribute{
-				MarkdownDescription: "debug field",
+				MarkdownDescription: "Enable debug-level remote syslog output.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "enabled field",
+				MarkdownDescription: "Whether the controller forwards its own syslog stream.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -84,12 +84,12 @@ func (r *settingRsyslogdResource) Schema(_ context.Context, _ resource.SchemaReq
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"log_all_contents": schema.BoolAttribute{
-				MarkdownDescription: "log_all_contents field",
+				MarkdownDescription: "Forward full log content (not just metadata).",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"netconsole_enabled": schema.BoolAttribute{
-				MarkdownDescription: "netconsole_enabled field",
+				MarkdownDescription: "Remote logging: stream kernel messages via netconsole (dmesg over UDP) to the syslog target.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -109,12 +109,12 @@ func (r *settingRsyslogdResource) Schema(_ context.Context, _ resource.SchemaReq
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			},
 			"this_controller": schema.BoolAttribute{
-				MarkdownDescription: "this_controller field",
+				MarkdownDescription: "Use this UDM as the syslog destination.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"this_controller_encrypted_only": schema.BoolAttribute{
-				MarkdownDescription: "this_controller_encrypted_only field",
+				MarkdownDescription: "Reject plaintext syslog connections from devices.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},

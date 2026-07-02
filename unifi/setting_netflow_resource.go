@@ -63,12 +63,12 @@ func (r *settingNetflowResource) Schema(_ context.Context, _ resource.SchemaRequ
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
 			"auto_engine_id_enabled": schema.BoolAttribute{
-				MarkdownDescription: "auto_engine_id_enabled field",
+				MarkdownDescription: "Auto-derive engine ID from the device MAC.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "enabled field",
+				MarkdownDescription: "Whether NetFlow/sFlow export is enabled.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -78,7 +78,7 @@ func (r *settingNetflowResource) Schema(_ context.Context, _ resource.SchemaRequ
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			},
 			"export_frequency": schema.Int64Attribute{
-				MarkdownDescription: "export_frequency field",
+				MarkdownDescription: "Active-flow export interval (seconds).",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			},
@@ -94,7 +94,7 @@ func (r *settingNetflowResource) Schema(_ context.Context, _ resource.SchemaRequ
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			},
 			"refresh_rate": schema.Int64Attribute{
-				MarkdownDescription: "refresh_rate field",
+				MarkdownDescription: "Template refresh interval (seconds).",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			},

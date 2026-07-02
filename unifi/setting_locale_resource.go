@@ -50,7 +50,7 @@ func (r *settingLocaleResource) Schema(_ context.Context, _ resource.SchemaReque
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
 			"timezone": schema.StringAttribute{
-				MarkdownDescription: "timezone field",
+				MarkdownDescription: "IANA timezone name. Drives controller-side timestamp display.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},

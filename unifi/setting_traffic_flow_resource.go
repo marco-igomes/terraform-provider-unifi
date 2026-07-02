@@ -54,22 +54,22 @@ func (r *settingTrafficFlowResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
 			"enabled_allowed_traffic": schema.BoolAttribute{
-				MarkdownDescription: "enabled_allowed_traffic field",
+				MarkdownDescription: "Traffic-flow logging: log allowed traffic too, not just blocked.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"gateway_dns_enabled": schema.BoolAttribute{
-				MarkdownDescription: "gateway_dns_enabled field",
+				MarkdownDescription: "Traffic-flow logging: include gateway DNS as an additional flow.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"unifi_device_management_enabled": schema.BoolAttribute{
-				MarkdownDescription: "unifi_device_management_enabled field",
+				MarkdownDescription: "Traffic-flow logging: include UniFi device/service management traffic as an additional flow.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"unifi_services_enabled": schema.BoolAttribute{
-				MarkdownDescription: "unifi_services_enabled field",
+				MarkdownDescription: "Send UniFi-service traffic metadata to the controller for the Traffic Flow UI.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},

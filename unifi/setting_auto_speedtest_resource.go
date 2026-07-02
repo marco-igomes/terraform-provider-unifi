@@ -52,12 +52,12 @@ func (r *settingAutoSpeedtestResource) Schema(_ context.Context, _ resource.Sche
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
 			"cron_expr": schema.StringAttribute{
-				MarkdownDescription: "cron_expr field",
+				MarkdownDescription: "Schedule (cron syntax). Daily at 08:00 local.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "enabled field",
+				MarkdownDescription: "Whether the controller runs scheduled WAN speedtests.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},

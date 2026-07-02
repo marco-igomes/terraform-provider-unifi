@@ -53,7 +53,7 @@ func (r *settingMagicSiteToSiteVpnResource) Schema(_ context.Context, _ resource
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
 			"enabled": schema.BoolAttribute{
-				MarkdownDescription: "enabled field",
+				MarkdownDescription: "Whether the UID-Magic site-to-site VPN feature is enabled on this site.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},

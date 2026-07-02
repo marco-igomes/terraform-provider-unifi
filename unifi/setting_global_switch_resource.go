@@ -75,7 +75,7 @@ func (r *settingGlobalSwitchResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"dhcp_snoop": schema.BoolAttribute{
-				MarkdownDescription: "dhcp_snoop field",
+				MarkdownDescription: "Enable DHCP snooping on managed switches.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
@@ -85,32 +85,32 @@ func (r *settingGlobalSwitchResource) Schema(_ context.Context, _ resource.Schem
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"dot1x_portctrl_enabled": schema.BoolAttribute{
-				MarkdownDescription: "dot1x_portctrl_enabled field",
+				MarkdownDescription: "Enable 802.1X port-based network access control.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"flood_known_protocols": schema.BoolAttribute{
-				MarkdownDescription: "flood_known_protocols field",
+				MarkdownDescription: "Flood known-protocol multicast (PTP/H.323/NTP/SLP/SSDP, 224.0.1.x) to all ports; off can break AV/PTP. Switch fw 7.2+.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"flowctrl_enabled": schema.BoolAttribute{
-				MarkdownDescription: "flowctrl_enabled field",
+				MarkdownDescription: "Enable IEEE 802.3x flow control on switch ports.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"forward_unknown_mcast_router_ports": schema.BoolAttribute{
-				MarkdownDescription: "forward_unknown_mcast_router_ports field",
+				MarkdownDescription: "Forward unknown multicast (no IGMP report) to multicast-router ports instead of dropping. Switch fw 7.2+.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"jumboframe_enabled": schema.BoolAttribute{
-				MarkdownDescription: "jumboframe_enabled field",
+				MarkdownDescription: "Enable jumbo frames on managed switches.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
 			},
 			"radiusprofile_id": schema.StringAttribute{
-				MarkdownDescription: "radiusprofile_id field",
+				MarkdownDescription: "Default RADIUS profile used by switch ports that require auth.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},

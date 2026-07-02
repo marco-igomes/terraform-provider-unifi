@@ -51,7 +51,7 @@ func (r *settingCountryResource) Schema(_ context.Context, _ resource.SchemaRequ
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()},
 			},
 			"code": schema.Int64Attribute{
-				MarkdownDescription: "code field",
+				MarkdownDescription: "ISO-3166-style numeric country code. 620 = Portugal — drives RF regulatory limits.",
 				Optional:            true, Computed: true,
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			},
