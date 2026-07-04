@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -73,6 +73,8 @@ type portProfileResourceModel struct {
 	StormctrlUcastEnabled      types.Bool   `tfsdk:"stormctrl_ucast_enabled"`
 	StormctrlUcastLevel        types.Int64  `tfsdk:"stormctrl_ucast_level"`
 	StormctrlUcastRate         types.Int64  `tfsdk:"stormctrl_ucast_rate"`
+	STPBpduGuardEnabled        types.Bool   `tfsdk:"stp_bpdu_guard_enabled"`
+	STPEdgeState               types.String `tfsdk:"stp_edge_state"`
 	STPPortMode                types.Bool   `tfsdk:"stp_port_mode"`
 	TaggedNetworkConfIDs       types.Set    `tfsdk:"tagged_networkconf_ids"`
 	VoiceNetworkConfID         types.String `tfsdk:"voice_networkconf_id"`
@@ -344,6 +346,14 @@ func (r *portProfileResource) Schema(
 					int64validator.Between(0, 14880000),
 					int64validator.ConflictsWith(path.MatchRoot("stormctrl_ucast_level")),
 				},
+			},
+			"stp_bpdu_guard_enabled": schema.BoolAttribute{
+				Description: "Enable BPDU guard for the port profile.",
+				Optional:    true,
+			},
+			"stp_edge_state": schema.StringAttribute{
+				Description: "Port Mode: 'enabled'=Edge, 'auto'=Uplink; omit for controller default.",
+				Optional:    true,
 			},
 			"stp_port_mode": schema.BoolAttribute{
 				Description: "Enable Spanning Tree Protocol (STP) for the port profile.",
@@ -837,6 +847,12 @@ func (r *portProfileResource) setResourceData(
 	model.StormctrlUcastLevel = types.Int64Null()
 	model.StormctrlUcastRate = types.Int64Null()
 	model.STPPortMode = types.BoolValue(portProfile.StpPortMode)
+	model.STPBpduGuardEnabled = types.BoolValue(portProfile.StpBpduGuardEnabled)
+	if portProfile.StpEdgeState != "" {
+		model.STPEdgeState = types.StringValue(portProfile.StpEdgeState)
+	} else {
+		model.STPEdgeState = types.StringNull()
+	}
 }
 
 func (r *portProfileResource) applyPlanToState(

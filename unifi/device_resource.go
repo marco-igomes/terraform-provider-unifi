@@ -152,6 +152,8 @@ type portOverrideModel struct {
 	StormctrlUcastEnabled      types.Bool   `tfsdk:"stormctrl_ucast_enabled"`
 	StormctrlUcastLevel        types.Int64  `tfsdk:"stormctrl_ucast_level"`
 	StormctrlUcastRate         types.Int64  `tfsdk:"stormctrl_ucast_rate"`
+	StpBpduGuardEnabled        types.Bool   `tfsdk:"stp_bpdu_guard_enabled"`
+	StpEdgeState               types.String `tfsdk:"stp_edge_state"`
 	StpPortMode                types.Bool   `tfsdk:"stp_port_mode"`
 	TaggedVLANMgmt             types.String `tfsdk:"tagged_vlan_mgmt"`
 	VoiceNetworkID             types.String `tfsdk:"voice_networkconf_id"`
@@ -886,6 +888,16 @@ func (r *deviceResource) Schema(
 						"stormctrl_ucast_rate": schema.Int64Attribute{
 							Description: "Unicast storm control rate.",
 							Optional:    true,
+						},
+						"stp_bpdu_guard_enabled": schema.BoolAttribute{
+							Description: "BPDU guard enabled on the port.",
+							Optional:    true,
+							Computed:    true,
+						},
+						"stp_edge_state": schema.StringAttribute{
+							Description: "Port Mode: 'enabled'=Edge, 'auto'=Uplink; omit for controller default.",
+							Optional:    true,
+							Computed:    true,
 						},
 						"stp_port_mode": schema.BoolAttribute{
 							Description: "STP port mode.",
@@ -1844,6 +1856,12 @@ func (r *deviceResource) portOverridesToFramework(
 			model.StormctrlType = types.StringValue(po.StormctrlType)
 		}
 
+		if po.StpEdgeState == "" {
+			model.StpEdgeState = types.StringNull()
+		} else {
+			model.StpEdgeState = types.StringValue(po.StpEdgeState)
+		}
+
 		if po.TaggedVLANMgmt == "" {
 			model.TaggedVLANMgmt = types.StringNull()
 		} else {
@@ -1869,6 +1887,7 @@ func (r *deviceResource) portOverridesToFramework(
 		model.StormctrlBroadcastEnabled = types.BoolValue(po.StormctrlBroadcastastEnabled)
 		model.StormctrlMcastEnabled = types.BoolValue(po.StormctrlMcastEnabled)
 		model.StormctrlUcastEnabled = types.BoolValue(po.StormctrlUcastEnabled)
+		model.StpBpduGuardEnabled = types.BoolValue(po.StpBpduGuardEnabled)
 		model.StpPortMode = types.BoolValue(po.StpPortMode)
 
 		// Int64 attributes
@@ -2033,6 +2052,9 @@ func (r *deviceResource) frameworkToPortOverrides(
 			if !model.StormctrlType.IsNull() {
 				po.StormctrlType = model.StormctrlType.ValueString()
 			}
+			if !model.StpEdgeState.IsNull() {
+				po.StpEdgeState = model.StpEdgeState.ValueString()
+			}
 			if !model.TaggedVLANMgmt.IsNull() {
 				po.TaggedVLANMgmt = model.TaggedVLANMgmt.ValueString()
 			}
@@ -2053,6 +2075,7 @@ func (r *deviceResource) frameworkToPortOverrides(
 			po.StormctrlBroadcastastEnabled = model.StormctrlBroadcastEnabled.ValueBool()
 			po.StormctrlMcastEnabled = model.StormctrlMcastEnabled.ValueBool()
 			po.StormctrlUcastEnabled = model.StormctrlUcastEnabled.ValueBool()
+			po.StpBpduGuardEnabled = model.StpBpduGuardEnabled.ValueBool()
 			po.StpPortMode = model.StpPortMode.ValueBool()
 
 			// Int64 attributes
@@ -2262,6 +2285,8 @@ func portOverrideAttrTypes() map[string]attr.Type {
 		"stormctrl_ucast_enabled":          types.BoolType,
 		"stormctrl_ucast_level":            types.Int64Type,
 		"stormctrl_ucast_rate":             types.Int64Type,
+		"stp_bpdu_guard_enabled":           types.BoolType,
+		"stp_edge_state":                   types.StringType,
 		"stp_port_mode":                    types.BoolType,
 		"tagged_vlan_mgmt":                 types.StringType,
 		"voice_networkconf_id":             types.StringType,

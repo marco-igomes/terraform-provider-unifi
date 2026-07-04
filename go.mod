@@ -280,5 +280,5 @@ require (
 
 tool github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
-// Fork: https://github.com/marco-igomes/go-unifi/tree/fix/udm-pro-import
-replace github.com/ubiquiti-community/go-unifi => github.com/marco-igomes/go-unifi v1.33.43-0.20260630221854-6a614e84e45c
+// Fork: https://github.com/marco-igomes/go-unifi (regen-safe-patches), pinned to tag v1.33.43
+replace github.com/ubiquiti-community/go-unifi => github.com/marco-igomes/go-unifi v1.33.43
