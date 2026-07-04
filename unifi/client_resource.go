@@ -256,12 +256,8 @@ Clients are created in the controller when observed on the network, so the resou
 				Optional:            true,
 			},
 			"fixed_ap_mac": schema.StringAttribute{
-				MarkdownDescription: "The MAC address of the access point to which this client should be fixed.",
+				MarkdownDescription: "The MAC address of the access point to which this client should be fixed. Unset = no lock; managed authoritatively (not Computed), so a lock set outside Terraform surfaces as drift.",
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"network_id": schema.StringAttribute{
 				MarkdownDescription: "The network ID for this client.",
