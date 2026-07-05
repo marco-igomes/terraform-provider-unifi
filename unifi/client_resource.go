@@ -260,12 +260,8 @@ Clients are created in the controller when observed on the network, so the resou
 				Optional:            true,
 			},
 			"network_id": schema.StringAttribute{
-				MarkdownDescription: "The network ID for this client.",
+				MarkdownDescription: "The network ID (virtual-network override) for this client. Unset = no override; managed authoritatively (not Computed), so an override set or cleared outside Terraform surfaces as drift.",
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"groups": schema.ListAttribute{
 				MarkdownDescription: "List of network members group names for this client.",
@@ -891,15 +887,13 @@ func (r *clientResource) planToClient(
 		LocalDNSRecord:        localDNSRecord,
 		LocalDNSRecordEnabled: localDNSRecord != "",
 
-		// NetworkID maps to VirtualNetworkOverrideID with its enable flag
-		VirtualNetworkOverrideID: networkID,
+		// NetworkID maps to VirtualNetworkOverrideID and its enable flag (false when
+		// null, so a cleared override is actually cleared — mirrors FixedApEnabled above).
+		VirtualNetworkOverrideID:      networkID,
+		VirtualNetworkOverrideEnabled: util.Ptr(networkID != ""),
 
 		// Network members group IDs
 		NetworkMembersGroupIDs: networkMembersGroupIDs,
-	}
-
-	if networkID != "" {
-		client.VirtualNetworkOverrideEnabled = util.Ptr(true)
 	}
 
 	// Resolve qos_rate to a client group (usergroup) ID.
@@ -959,7 +953,13 @@ func (r *clientResource) clientToModel(
 	} else {
 		model.FixedApMAC = types.StringNull()
 	}
-	model.NetworkID = util.StringValueOrNull(client.VirtualNetworkOverrideID)
+	// Honor the enable flag: the controller keeps a stale VirtualNetworkOverrideID even when
+	// disabled, so report null unless the override is actually enabled (mirrors fixed_ap_mac).
+	if client.VirtualNetworkOverrideEnabled != nil && *client.VirtualNetworkOverrideEnabled {
+		model.NetworkID = util.StringValueOrNull(client.VirtualNetworkOverrideID)
+	} else {
+		model.NetworkID = types.StringNull()
+	}
 
 	// Populate qos_rate from the client's UserGroupID by looking up the client group.
 	if client.UserGroupID != "" {
@@ -1034,12 +1034,10 @@ func (r *clientResource) mergeClient(
 	merged.LocalDNSRecord = planned.LocalDNSRecord
 	merged.LocalDNSRecordEnabled = planned.LocalDNSRecord != ""
 
-	// NetworkID (maps to VirtualNetworkOverrideID) and its enable flag
+	// NetworkID (maps to VirtualNetworkOverrideID) and its enable flag — always set
+	// (false when cleared) so removing an override actually clears it, like FixedApEnabled below.
 	merged.VirtualNetworkOverrideID = planned.VirtualNetworkOverrideID
-
-	if planned.VirtualNetworkOverrideID != "" {
-		merged.VirtualNetworkOverrideEnabled = util.Ptr(true)
-	}
+	merged.VirtualNetworkOverrideEnabled = util.Ptr(planned.VirtualNetworkOverrideID != "")
 
 	// FixedAP and its enable flag
 	merged.FixedApMAC = planned.FixedApMAC
@@ -1405,8 +1403,12 @@ func (r *clientResource) List(
 			}
 
 			// Post-filter by network_id (OR across values): match VirtualNetworkOverrideID or NetworkID.
+			// Honor the enable flag — a disabled override leaves a stale ID behind (see clientToModel).
 			if len(networkIDFilter) > 0 {
-				clientNetworkID := client.VirtualNetworkOverrideID
+				clientNetworkID := ""
+				if client.VirtualNetworkOverrideEnabled != nil && *client.VirtualNetworkOverrideEnabled {
+					clientNetworkID = client.VirtualNetworkOverrideID
+				}
 				if clientNetworkID == "" {
 					clientNetworkID = client.NetworkID
 				}
