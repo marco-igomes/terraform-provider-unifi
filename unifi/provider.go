@@ -341,6 +341,7 @@ func (p *unifiProvider) DataSources(ctx context.Context) []func() datasource.Dat
 		NewRadiusProfileDataSource,
 		NewClientQosRateDataSource,
 		NewSystemInfoDataSource,
+		NewConsoleDataSource,
 	}
 }
 
