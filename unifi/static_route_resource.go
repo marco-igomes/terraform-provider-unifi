@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -35,14 +37,17 @@ type staticRouteFrameworkResource struct {
 
 // staticRouteFrameworkResourceModel describes the resource data model.
 type staticRouteFrameworkResourceModel struct {
-	ID        types.String `tfsdk:"id"`
-	Site      types.String `tfsdk:"site"`
-	Name      types.String `tfsdk:"name"`
-	Network   types.String `tfsdk:"network"`
-	Type      types.String `tfsdk:"type"`
-	Distance  types.Int64  `tfsdk:"distance"`
-	NextHop   types.String `tfsdk:"next_hop"`
-	Interface types.String `tfsdk:"interface"`
+	ID            types.String `tfsdk:"id"`
+	Site          types.String `tfsdk:"site"`
+	Name          types.String `tfsdk:"name"`
+	Network       types.String `tfsdk:"network"`
+	Type          types.String `tfsdk:"type"`
+	Distance      types.Int64  `tfsdk:"distance"`
+	NextHop       types.String `tfsdk:"next_hop"`
+	Interface     types.String `tfsdk:"interface"`
+	Enabled       types.Bool   `tfsdk:"enabled"`
+	GatewayDevice types.String `tfsdk:"gateway_device"`
+	GatewayType   types.String `tfsdk:"gateway_type"`
 }
 
 func (r *staticRouteFrameworkResource) Metadata(
@@ -113,6 +118,28 @@ func (r *staticRouteFrameworkResource) Schema(
 			"interface": schema.StringAttribute{
 				MarkdownDescription: "The interface of the static route (only valid for `interface-route` type). This can be `WAN1`, `WAN2`, or a network ID.",
 				Optional:            true,
+			},
+			"enabled": schema.BoolAttribute{
+				MarkdownDescription: "Whether the static route is enabled. Defaults to `true`.",
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(true),
+				PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+			},
+			"gateway_device": schema.StringAttribute{
+				MarkdownDescription: "MAC address of the gateway device hosting the route (set by the controller; usually the UDM/USG).",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"gateway_type": schema.StringAttribute{
+				MarkdownDescription: "Gateway type: `default` or `switch`.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+				Validators: []validator.String{
+					stringvalidator.OneOf("default", "switch"),
+				},
 			},
 		},
 	}
@@ -355,6 +382,15 @@ func (r *staticRouteFrameworkResource) applyPlanToState(
 	if !plan.Interface.IsNull() && !plan.Interface.IsUnknown() {
 		state.Interface = plan.Interface
 	}
+	if !plan.Enabled.IsNull() && !plan.Enabled.IsUnknown() {
+		state.Enabled = plan.Enabled
+	}
+	if !plan.GatewayDevice.IsNull() && !plan.GatewayDevice.IsUnknown() {
+		state.GatewayDevice = plan.GatewayDevice
+	}
+	if !plan.GatewayType.IsNull() && !plan.GatewayType.IsUnknown() {
+		state.GatewayType = plan.GatewayType
+	}
 }
 
 // modelToRouting converts the Terraform model to the API struct.
@@ -364,13 +400,19 @@ func (r *staticRouteFrameworkResource) modelToRouting(
 ) *unifi.Routing {
 	routeType := model.Type.ValueString()
 
+	enabled := true
+	if !model.Enabled.IsNull() && !model.Enabled.IsUnknown() {
+		enabled = model.Enabled.ValueBool()
+	}
 	routing := &unifi.Routing{
-		Enabled:             true,
+		Enabled:             enabled,
 		Type:                "static-route",
 		Name:                model.Name.ValueString(),
 		StaticRouteNetwork:  model.Network.ValueString(), // TODO: Apply cidrZeroBased if needed
 		StaticRouteDistance: model.Distance.ValueInt64Pointer(),
 		StaticRouteType:     routeType,
+		GatewayDevice:       model.GatewayDevice.ValueString(),
+		GatewayType:         model.GatewayType.ValueString(),
 	}
 
 	switch routeType {
@@ -413,5 +455,17 @@ func (r *staticRouteFrameworkResource) routingToModel(
 		model.Interface = types.StringValue(routing.StaticRouteInterface)
 	} else {
 		model.Interface = types.StringNull()
+	}
+
+	model.Enabled = types.BoolValue(routing.Enabled)
+	if routing.GatewayDevice != "" {
+		model.GatewayDevice = types.StringValue(routing.GatewayDevice)
+	} else {
+		model.GatewayDevice = types.StringNull()
+	}
+	if routing.GatewayType != "" {
+		model.GatewayType = types.StringValue(routing.GatewayType)
+	} else {
+		model.GatewayType = types.StringNull()
 	}
 }

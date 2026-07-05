@@ -41,6 +41,7 @@ type radiusUserResourceModel struct {
 	TunnelType       types.Int64  `tfsdk:"tunnel_type"`
 	TunnelMediumType types.Int64  `tfsdk:"tunnel_medium_type"`
 	NetworkID        types.String `tfsdk:"network_id"`
+	GroupPolicy      types.String `tfsdk:"group_policy"`
 }
 
 func (r *radiusUserResource) Metadata(
@@ -113,6 +114,12 @@ NOTE: MAC-based authentication accounts can only be used for wireless and wired 
 			"network_id": schema.StringAttribute{
 				MarkdownDescription: "ID of the network for this account",
 				Optional:            true,
+			},
+			"group_policy": schema.StringAttribute{
+				MarkdownDescription: "RADIUS group policy assigned to the account (e.g. `GLOBAL`).",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 		},
 	}
@@ -349,6 +356,9 @@ func (r *radiusUserResource) applyPlanToState(
 	if !plan.NetworkID.IsNull() && !plan.NetworkID.IsUnknown() {
 		state.NetworkID = plan.NetworkID
 	}
+	if !plan.GroupPolicy.IsNull() && !plan.GroupPolicy.IsUnknown() {
+		state.GroupPolicy = plan.GroupPolicy
+	}
 }
 
 // modelToRadiusUser converts the Terraform model to the API struct.
@@ -367,6 +377,10 @@ func (r *radiusUserResource) modelToRadiusUser(
 
 	if !model.NetworkID.IsNull() {
 		account.NetworkID = model.NetworkID.ValueString()
+	}
+
+	if !model.GroupPolicy.IsNull() && !model.GroupPolicy.IsUnknown() {
+		account.GroupPolicy = model.GroupPolicy.ValueString()
 	}
 
 	return account
@@ -390,5 +404,11 @@ func (r *radiusUserResource) radiusUserToModel(
 		model.NetworkID = types.StringValue(account.NetworkID)
 	} else {
 		model.NetworkID = types.StringNull()
+	}
+
+	if account.GroupPolicy != "" {
+		model.GroupPolicy = types.StringValue(account.GroupPolicy)
+	} else {
+		model.GroupPolicy = types.StringNull()
 	}
 }

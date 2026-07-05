@@ -283,7 +283,9 @@ func (p *unifiProvider) Resources(ctx context.Context) []func() resource.Resourc
 		NewDNSRecordFrameworkResource,
 		NewDynamicDNSResource,
 		NewFirewallGroupFrameworkResource,
+		NewFirewallPolicyResource,
 		NewFirewallRuleResource,
+		NewFirewallZoneResource,
 		NewNetworkResource,
 		NewPortForwardResource,
 		NewPortProfileFrameworkResource,
@@ -298,6 +300,29 @@ func (p *unifiProvider) Resources(ctx context.Context) []func() resource.Resourc
 		NewVPNServerResource,
 		NewClientQosRateResource,
 		NewTrafficRouteResource,
+		NewUserGroupResource,
+		NewSettingAutoSpeedtestResource,
+		NewSettingConnectivityResource,
+		NewSettingCountryResource,
+		NewSettingDohResource,
+		NewSettingDpiResource,
+		NewSettingGlobalNatResource,
+		NewSettingGlobalNetworkResource,
+		NewSettingGlobalSwitchResource,
+		NewSettingGuestAccessResource,
+		NewSettingIgmpSnoopingResource,
+		NewSettingIpsResource,
+		NewSettingIpsecResource,
+		NewSettingLocaleResource,
+		NewSettingMagicSiteToSiteVpnResource,
+		NewSettingMdnsResource,
+		NewSettingNetflowResource,
+		NewSettingNtpResource,
+		NewSettingRadioAiResource,
+		NewSettingRoamingAssistantResource,
+		NewSettingRsyslogdResource,
+		NewSettingSslInspectionResource,
+		NewSettingTrafficFlowResource,
 	}
 }
 
@@ -315,6 +340,8 @@ func (p *unifiProvider) DataSources(ctx context.Context) []func() datasource.Dat
 		NewPortProfileDataSource,
 		NewRadiusProfileDataSource,
 		NewClientQosRateDataSource,
+		NewSystemInfoDataSource,
+		NewConsoleDataSource,
 	}
 }
 

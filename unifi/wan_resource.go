@@ -86,6 +86,22 @@ type wanResourceModel struct {
 
 	// Provider Capabilities
 	ProviderCapabilities types.Object `tfsdk:"provider_capabilities"`
+
+	SettingPreference types.String `tfsdk:"setting_preference"`
+	MACOverride       types.Object `tfsdk:"mac_override"`
+}
+
+// macOverrideModel describes the WAN MAC-override configuration.
+type macOverrideModel struct {
+	Enabled types.Bool   `tfsdk:"enabled"`
+	Address types.String `tfsdk:"address"`
+}
+
+func (m macOverrideModel) AttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enabled": types.BoolType,
+		"address": types.StringType,
+	}
 }
 
 // vlanModel describes the VLAN configuration.
@@ -688,6 +704,32 @@ func (r *wanResource) Schema(
 					"upload_kilobits_per_second": schema.Int64Attribute{
 						Required:            true,
 						MarkdownDescription: "Upload speed in kilobits per second",
+					},
+				},
+			},
+			"setting_preference": schema.StringAttribute{
+				MarkdownDescription: "Top-level setting preference (`auto` or `manual`).",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+			},
+			"mac_override": schema.SingleNestedAttribute{
+				MarkdownDescription: "Override the WAN-facing MAC address. Useful for ISPs that bind service to a specific MAC.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.Object{objectplanmodifier.UseStateForUnknown()},
+				Attributes: map[string]schema.Attribute{
+					"enabled": schema.BoolAttribute{
+						MarkdownDescription: "Whether MAC override is enabled.",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+					},
+					"address": schema.StringAttribute{
+						MarkdownDescription: "Override MAC address (`xx:xx:xx:xx:xx:xx`).",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 					},
 				},
 			},
@@ -1332,6 +1374,19 @@ func (r *wanResource) modelToNetwork(
 		}
 	}
 
+	if !model.SettingPreference.IsNull() && !model.SettingPreference.IsUnknown() {
+		network.SettingPreference = model.SettingPreference.ValueStringPointer()
+	}
+
+	if !model.MACOverride.IsNull() && !model.MACOverride.IsUnknown() {
+		var mo macOverrideModel
+		diags.Append(model.MACOverride.As(ctx, &mo, basetypes.ObjectAsOptions{})...)
+		if !diags.HasError() {
+			network.MACOverrideEnabled = mo.Enabled.ValueBool()
+			network.MACOverride = mo.Address.ValueString()
+		}
+	}
+
 	return network, diags
 }
 
@@ -1622,11 +1677,31 @@ func (r *wanResource) networkToModel(
 	}
 	// If API returns nil, preserve existing model.ProviderCapabilities
 
+	model.SettingPreference = types.StringPointerValue(network.SettingPreference)
+
+	macOverrideVal := macOverrideModel{
+		Enabled: types.BoolValue(network.MACOverrideEnabled),
+		Address: stringOrNull(network.MACOverride),
+	}
+	if obj, d := types.ObjectValueFrom(ctx, macOverrideAttrTypes(), macOverrideVal); !d.HasError() {
+		model.MACOverride = obj
+	} else {
+		diags.Append(d...)
+		model.MACOverride = types.ObjectNull(macOverrideAttrTypes())
+	}
+
 	// Apply schema defaults for fields that are still null/unknown (handles import case
 	// where there's no previous state to preserve).
 	applyWANDefaults(model)
 
 	return diags
+}
+
+func macOverrideAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enabled": types.BoolType,
+		"address": types.StringType,
+	}
 }
 
 // applyWANDefaults ensures fields that are still null or unknown have properly-typed values.

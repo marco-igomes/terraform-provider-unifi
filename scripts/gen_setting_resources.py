@@ -1,0 +1,537 @@
+#!/usr/bin/env python3
+"""Generate one terraform-provider-unifi resource file per SDK setting type.
+
+Reads SDK struct definitions from go-unifi/unifi/settings/*.generated.go,
+emits unifi/setting_<key>_resource.go using a hand-rolled framework template.
+"""
+import os
+import re
+import subprocess
+import sys
+
+SDK_DIR = "/Users/migomes/Projects/migomes/external/terraform/go-unifi/unifi/settings"
+OUT_DIR = "/Users/migomes/Projects/migomes/external/terraform/terraform-provider-unifi/unifi"
+
+# (key, GoStructName, ResourceTypeName, MarkdownDescription)
+TARGETS = [
+    ("auto_speedtest","AutoSpeedtest","auto_speedtest","Scheduled WAN speedtest configuration."),
+    ("connectivity","Connectivity","connectivity","WAN uplink connectivity monitor (used by failover logic)."),
+    ("country","Country","country","Regulatory country/region code (drives radio limits and DFS)."),
+    ("doh","Doh","doh","DNS-over-HTTPS upstream provider configuration."),
+    ("dpi","Dpi","dpi","Deep Packet Inspection (DPI) toggles + traffic fingerprinting."),
+    ("global_nat","GlobalNat","global_nat","Global NAT mode toggle."),
+    ("global_network","GlobalNetwork","global_network","Site-wide default security posture (allow-all vs zero-trust)."),
+    ("global_switch","GlobalSwitch","global_switch","Switch-wide defaults: STP version, DHCP snooping, RADIUS profile."),
+    ("guest_access","GuestAccess","guest_access","Captive portal / guest hotspot configuration."),
+    ("igmp_snooping","IgmpSnooping","igmp_snooping","Multicast (IGMP) snooping config: querier mode, subscription mode, flood behaviour."),
+    ("ips","Ips","ips","IDS/IPS configuration: mode, enabled networks, categories, DNS filtering, ad-blocking."),
+    ("ipsec","Ipsec","ipsec","Global IPsec parameters (e.g. IKEv2 reauthentication method)."),
+    ("locale","Locale","locale","Controller timezone."),
+    ("magic_site_to_site_vpn","MagicSiteToSiteVpn","magic_site_to_site_vpn","UniFi SD-WAN (Magic Site-to-Site) overlay VPN configuration."),
+    ("mdns","Mdns","mdns","mDNS reflector configuration (cross-VLAN service discovery)."),
+    ("netflow","Netflow","netflow","NetFlow/sFlow flow exporter configuration."),
+    ("ntp","Ntp","ntp","NTP servers and manual/auto mode for controller time sync."),
+    ("radio_ai","RadioAi","radio_ai","RF auto-optimization (RF Scanning): auto channel/power selection, channel pools, blacklist."),
+    ("roaming_assistant","RoamingAssistant","roaming_assistant","WiFi roaming assistant RSSI threshold (sticky-client mitigation)."),
+    ("rsyslogd","Rsyslogd","rsyslogd","Remote syslog (rsyslogd) configuration."),
+    ("ssl_inspection","SslInspection","ssl_inspection","TLS/SSL inspection on/off."),
+    ("traffic_flow","TrafficFlow","traffic_flow","Traffic flow capture toggles."),
+]
+
+# Hand-authored per-field descriptions, keyed by (setting key, tfsdk attribute
+# name). The ace.jar schema carries only validation (a regex/enum), so without
+# these the generated description is the raw regex or a "<field> field" stub.
+# Allowed values below are taken from that regex/enum; only verified behaviour.
+DESCRIPTIONS = {
+    ("radio_ai", "auto_adjust_channels_to_country"): "Constrain auto-selected channels to those permitted by the site's regulatory country.",
+    ("radio_ai", "auto_channel_presets_type"): 'Channel-selection preset. One of: "maximum_speed", "conservative", "custom".',
+    ("radio_ai", "channels_6e"): "6 GHz channel pool the optimizer may select from (JSON array of channel numbers).",
+    ("radio_ai", "channels_blacklist"): "Channels excluded from auto-selection (JSON array of {channel, channel_width, radio}).",
+    ("radio_ai", "channels_na"): "5 GHz channel pool the optimizer may select from (JSON array of channel numbers).",
+    ("radio_ai", "channels_ng"): "2.4 GHz channel pool the optimizer may select from (JSON array of channel numbers).",
+    ("radio_ai", "cron_expr"): "Cron expression for the scheduled optimization run.",
+    ("radio_ai", "default"): 'Whether the Channel Plan is unmodified (controller-set; the "Restore to Defaults" state).',
+    ("radio_ai", "enabled"): "Whether RF auto-optimization (RF Scanning) is enabled.",
+    ("radio_ai", "exclude_devices"): "MAC addresses of access points excluded from optimization.",
+    ("radio_ai", "high_priority_devices"): "MAC addresses of access points prioritized during optimization.",
+    ("radio_ai", "ht_modes_na"): 'Allowed 5 GHz channel widths in MHz. One or more of: "20", "40", "80", "160".',
+    ("radio_ai", "ht_modes_ng"): 'Allowed 2.4 GHz channel widths in MHz. One or more of: "20", "40".',
+    ("radio_ai", "optimize"): 'What RF auto-optimization adjusts. One or more of: "channel", "power".',
+    ("radio_ai", "radios"): 'Radio bands to optimize. One or more of: "na" (5 GHz), "ng" (2.4 GHz), "6e" (6 GHz).',
+    ("radio_ai", "radios_configuration"): "Per-radio optimization settings (JSON array of {radio, channel_width, dfs}).",
+    ("radio_ai", "setting_preference"): 'Whether these settings are auto-managed or manual. One of: "auto", "manual".',
+    ("radio_ai", "use_xy"): "Controller-internal flag; no corresponding control found in the RF/WiFi UI.",
+    ("auto_speedtest", "cron_expr"): "Schedule (cron syntax). Daily at 08:00 local.",
+    ("auto_speedtest", "enabled"): "Whether the controller runs scheduled WAN speedtests.",
+    ("connectivity", "enable_isolated_wlan"): "Undocumented boolean in the connectivity (uplink/mesh) setting — no prose in ace.jar or any UniFi API client/docs. At controller default.",
+    ("connectivity", "enabled"): "Whether the controller's uplink connectivity check is enabled.",
+    ("connectivity", "uplink_type"): "Uplink-check target. One of \"gateway\" or \"custom\".",
+    ("country", "code"): "ISO-3166-style numeric country code. 620 = Portugal — drives RF regulatory limits.",
+    ("dpi", "enabled"): "Deep-packet-inspection enabled for application-aware policy.",
+    ("global_nat", "excluded_network_ids"): "Networks excluded from global NAT (none).",
+    ("global_switch", "dhcp_snoop"): "Enable DHCP snooping on managed switches.",
+    ("global_switch", "dot1x_portctrl_enabled"): "Enable 802.1X port-based network access control.",
+    ("global_switch", "flood_known_protocols"): "Flood known-protocol multicast (PTP/H.323/NTP/SLP/SSDP, 224.0.1.x) to all ports; off can break AV/PTP. Switch fw 7.2+.",
+    ("global_switch", "flowctrl_enabled"): "Enable IEEE 802.3x flow control on switch ports.",
+    ("global_switch", "forward_unknown_mcast_router_ports"): "Forward unknown multicast (no IGMP report) to multicast-router ports instead of dropping. Switch fw 7.2+.",
+    ("global_switch", "jumboframe_enabled"): "Enable jumbo frames on managed switches.",
+    ("global_switch", "radiusprofile_id"): "Default RADIUS profile used by switch ports that require auth.",
+    ("guest_access", "authorize_use_sandbox"): "Authorize.Net sandbox mode.",
+    ("guest_access", "ec_enabled"): "Send NSE (Encrypted Client Hello / SNI hide) hints.",
+    ("guest_access", "facebook_enabled"): "Facebook social login.",
+    ("guest_access", "facebook_scope_email"): "Request email scope from Facebook.",
+    ("guest_access", "facebook_wifi_block_https"): "Block HTTPS until Facebook check-in completes.",
+    ("guest_access", "facebook_wifi_gw_name"): "FB-Wi-Fi gateway display name (unused — facebook_enabled = false).",
+    ("guest_access", "google_enabled"): "Google social login.",
+    ("guest_access", "google_scope_email"): "Request email scope from Google.",
+    ("guest_access", "ippay_use_sandbox"): "IPpay sandbox mode.",
+    ("guest_access", "merchantwarrior_use_sandbox"): "MerchantWarrior sandbox mode.",
+    ("guest_access", "password_enabled"): "Simple shared-password gate.",
+    ("guest_access", "payment_enabled"): "Paid-access via a payment gateway.",
+    ("guest_access", "paypal_use_sandbox"): "PayPal sandbox mode.",
+    ("guest_access", "portal_customized"): "Whether portal appearance overrides the default theme.",
+    ("guest_access", "portal_customized_authentication_text"): "Heading shown above the auth-method picker.",
+    ("guest_access", "portal_customized_bg_image_enabled"): "Use a background image instead of a solid colour.",
+    ("guest_access", "portal_customized_bg_image_tile"): "Tile the background image.",
+    ("guest_access", "portal_customized_button_text"): "Primary CTA button label.",
+    ("guest_access", "portal_customized_logo_enabled"): "Whether the customised logo is displayed at all.",
+    ("guest_access", "portal_customized_success_text"): "Text shown on successful login.",
+    ("guest_access", "portal_customized_title"): "Browser tab title and portal heading.",
+    ("guest_access", "portal_customized_tos"): "Terms of service body shown to guests before they can connect.",
+    ("guest_access", "portal_customized_tos_enabled"): "Require guests to accept the Terms of Service.",
+    ("guest_access", "portal_customized_welcome_text_enabled"): "Show a welcome-text block on the portal.",
+    ("guest_access", "portal_enabled"): "Master switch for the guest captive portal.",
+    ("guest_access", "portal_use_hostname"): "Redirect guests to a hostname instead of the controller IP.",
+    ("guest_access", "quickpay_testmode"): "QuickPay test mode.",
+    ("guest_access", "radius_disconnect_enabled"): "Honour RADIUS CoA / Disconnect messages.",
+    ("guest_access", "radius_enabled"): "RADIUS-backed portal auth.",
+    ("guest_access", "radiusprofile_id"): "RADIUS profile used for portal auth (only when auth = \"hotspot\").",
+    ("guest_access", "redirect_enabled"): "Redirect guests to an external URL after login.",
+    ("guest_access", "redirect_https"): "Send the post-login redirect over HTTPS.",
+    ("guest_access", "redirect_to_https"): "Force that redirect to HTTPS.",
+    ("guest_access", "restricted_dns_enabled"): "Apply a restricted DNS server set to guests pre-auth.",
+    ("guest_access", "voucher_customized"): "Customised voucher portal.",
+    ("guest_access", "voucher_enabled"): "Voucher-code auth.",
+    ("guest_access", "wechat_enabled"): "WeChat social login.",
+    ("igmp_snooping", "enabled"): "Whether IGMP snooping is enabled on the site.",
+    ("igmp_snooping", "flood_known_protocols"): "Flood traffic for protocols the snooping table can't classify.",
+    ("igmp_snooping", "forward_unknown_mcast_router_ports"): "Forward unknown multicast on router ports (preserves discovery).",
+    ("ips", "content_filtering_blocking_page_enabled"): "Show the UniFi blocking page when content filtering blocks a request.",
+    ("ips", "dns_filtering"): "Whether per-network DNS content filtering is enabled.",
+    ("ips", "honeypot_enabled"): "Whether the IDS/IPS honeypot is enabled.",
+    ("ips", "memory_optimized"): "Use the memory-optimised ruleset path (smaller rule footprint, slightly fewer signatures).",
+    ("ips", "restrict_torrents"): "IDS/IPS: block BitTorrent / P2P traffic.",
+    ("locale", "timezone"): "IANA timezone name. Drives controller-side timestamp display.",
+    ("magic_site_to_site_vpn", "enabled"): "Whether the UID-Magic site-to-site VPN feature is enabled on this site.",
+    ("netflow", "auto_engine_id_enabled"): "Auto-derive engine ID from the device MAC.",
+    ("netflow", "enabled"): "Whether NetFlow/sFlow export is enabled.",
+    ("netflow", "export_frequency"): "Active-flow export interval (seconds).",
+    ("netflow", "refresh_rate"): "Template refresh interval (seconds).",
+    ("ntp", "ntp_server_1"): "First NTP server (hostname or IP). Portugal pool — geographically closest.",
+    ("ntp", "ntp_server_2"): "Second NTP server (regional pool fallback).",
+    ("ntp", "ntp_server_3"): "Third NTP server.",
+    ("rsyslogd", "debug"): "Enable debug-level remote syslog output.",
+    ("rsyslogd", "enabled"): "Whether the controller forwards its own syslog stream.",
+    ("rsyslogd", "log_all_contents"): "Forward full log content (not just metadata).",
+    ("rsyslogd", "netconsole_enabled"): "Remote logging: stream kernel messages via netconsole (dmesg over UDP) to the syslog target.",
+    ("rsyslogd", "this_controller"): "Use this UDM as the syslog destination.",
+    ("rsyslogd", "this_controller_encrypted_only"): "Reject plaintext syslog connections from devices.",
+    ("ssl_inspection", "identity_certificate_all_users"): "Apply the identity cert to all users (used when state = \"on\").",
+    ("traffic_flow", "enabled_allowed_traffic"): "Traffic-flow logging: log allowed traffic too, not just blocked.",
+    ("traffic_flow", "gateway_dns_enabled"): "Traffic-flow logging: include gateway DNS as an additional flow.",
+    ("traffic_flow", "unifi_device_management_enabled"): "Traffic-flow logging: include UniFi device/service management traffic as an additional flow.",
+    ("traffic_flow", "unifi_services_enabled"): "Send UniFi-service traffic metadata to the controller for the Traffic Flow UI.",
+}
+
+
+FIELD_RE = re.compile(r"^\t([A-Z]\w+)\s+(\[?\]?\*?[A-Za-z0-9_.]+)\s+`json:\"([^\"]+)\"`(.*)$", re.M)
+
+
+def snake(name: str) -> str:
+    s = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
+    s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s)
+    return s.lower()
+
+
+def parse_struct(path: str, struct_name: str):
+    text = open(path).read()
+    m = re.search(rf"type {struct_name} struct \{{(.*?)^\}}", text, re.M | re.S)
+    if not m:
+        raise RuntimeError(f"struct {struct_name} not found in {path}")
+    body = m.group(1)
+    fields = []
+    for fm in FIELD_RE.finditer(body):
+        name, gotype, jsontag, rest = fm.groups()
+        json_name = jsontag.split(",")[0]
+        comment = rest.strip().lstrip("//").strip() or ""
+        # tfsdk attribute names must be snake_case lowercase alphanumeric.
+        tf_name = snake(json_name) if any(c.isupper() for c in json_name) else json_name
+        fields.append({"go": name, "gotype": gotype, "json": json_name, "tf": tf_name, "comment": comment})
+    return fields
+
+
+SIMPLE_TYPES = {"bool", "string", "int", "int64", "*int64", "[]string"}
+
+
+def tf_type_for(gotype: str):
+    """Return (tfsdk_go_type, schema_attribute_constructor, marshal_helpers)."""
+    if gotype == "bool":
+        return ("types.Bool", "schema.BoolAttribute",
+                {"to_model": "types.BoolValue({src}.{Go})",
+                 "to_sdk":   "{model}.{Go}.ValueBool()",
+                 "plan_mod": "boolplanmodifier.UseStateForUnknown()",
+                 "plan_mod_pkg": "boolplanmodifier",
+                 "list_kw": ""})
+    if gotype == "string":
+        return ("types.String", "schema.StringAttribute",
+                {"to_model": "stringOrNull({src}.{Go})",
+                 "to_sdk":   "{model}.{Go}.ValueString()",
+                 "plan_mod": "stringplanmodifier.UseStateForUnknown()",
+                 "plan_mod_pkg": "stringplanmodifier",
+                 "list_kw": ""})
+    if gotype in ("int", "int64"):
+        return ("types.Int64", "schema.Int64Attribute",
+                {"to_model": "types.Int64Value(int64({src}.{Go}))",
+                 "to_sdk":   "int({model}.{Go}.ValueInt64())" if gotype == "int" else "{model}.{Go}.ValueInt64()",
+                 "plan_mod": "int64planmodifier.UseStateForUnknown()",
+                 "plan_mod_pkg": "int64planmodifier",
+                 "list_kw": ""})
+    if gotype == "*int64":
+        return ("types.Int64", "schema.Int64Attribute",
+                {"to_model": "types.Int64PointerValue({src}.{Go})",
+                 "to_sdk":   "int64PointerOrNil({model}.{Go})",
+                 "plan_mod": "int64planmodifier.UseStateForUnknown()",
+                 "plan_mod_pkg": "int64planmodifier",
+                 "list_kw": ""})
+    if gotype == "[]string":
+        return ("types.List", "schema.ListAttribute",
+                {"to_model": "stringList(ctx, {src}.{Go}, &diags)",
+                 "to_sdk":   "stringSliceFromList(ctx, {model}.{Go}, &diags)",
+                 "plan_mod": "listplanmodifier.UseStateForUnknown()",
+                 "plan_mod_pkg": "listplanmodifier",
+                 "list_kw": "ElementType: types.StringType,"})
+    # complex types -> JSON-string attribute (Computed-only, lossless round trip)
+    # Prefix referenced types with `settings.` package qualifier, but leave Go
+    # builtins (e.g. the element type of []int64) unqualified.
+    GO_BUILTINS = {"int", "int8", "int16", "int32", "int64",
+                   "uint", "uint8", "uint16", "uint32", "uint64",
+                   "string", "bool", "float32", "float64", "byte", "rune"}
+
+    def _qualify(t):
+        return t if t in GO_BUILTINS else "settings." + t
+
+    qualified = gotype
+    if qualified.startswith("[]"):
+        qualified = "[]" + _qualify(qualified[2:])
+    elif qualified.startswith("*"):
+        qualified = "*" + _qualify(qualified[1:])
+    else:
+        qualified = _qualify(qualified)
+    return ("types.String", "schema.StringAttribute",
+            {"to_model": "jsonStringFrom({src}.{Go})",
+             "to_sdk":   None,  # complex -> JSON; needs custom decoding, see emit
+             "plan_mod": "stringplanmodifier.UseStateForUnknown()",
+             "plan_mod_pkg": "stringplanmodifier",
+             "list_kw": "",
+             "complex": True,
+             "complex_type": qualified})
+
+
+HEADER = '''package unifi
+
+// Code generated from go-unifi/unifi/settings/{key}.generated.go.
+// DO NOT EDIT MANUALLY — regenerate via scripts/gen_setting_resources.py.
+
+import (
+\t"context"
+\t"encoding/json"
+\t"fmt"
+
+\t"github.com/hashicorp/terraform-plugin-framework/diag"
+\t"github.com/hashicorp/terraform-plugin-framework/path"
+\t"github.com/hashicorp/terraform-plugin-framework/resource"
+\t"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+{plan_mod_imports}
+\t"github.com/hashicorp/terraform-plugin-framework/types"
+\tui "github.com/ubiquiti-community/go-unifi/unifi"
+\t"github.com/ubiquiti-community/go-unifi/unifi/settings"
+)
+'''
+
+
+def emit(key, struct, type_name, desc, fields):
+    plan_mod_pkgs = {"stringplanmodifier"}
+    for f in fields:
+        tf = tf_type_for(f["gotype"])
+        plan_mod_pkgs.add(tf[2]["plan_mod_pkg"])
+    # also ensure list import if used
+    plan_mod_imports = "\n".join(
+        f'\t"github.com/hashicorp/terraform-plugin-framework/resource/schema/{p}"'
+        for p in sorted(plan_mod_pkgs)
+    )
+
+    parts = [HEADER.format(key=key, plan_mod_imports=plan_mod_imports)]
+
+    res_name = f"setting{struct}Resource"
+    model_name = f"setting{struct}Model"
+    new_name = f"NewSetting{struct}Resource"
+
+    parts.append(f"""
+var (
+\t_ resource.Resource                = &{res_name}{{}}
+\t_ resource.ResourceWithImportState = &{res_name}{{}}
+)
+
+func {new_name}() resource.Resource {{
+\treturn &{res_name}{{}}
+}}
+
+type {res_name} struct {{
+\tclient *Client
+}}
+
+type {model_name} struct {{
+\tID   types.String `tfsdk:"id"`
+\tSite types.String `tfsdk:"site"`
+""")
+
+    for f in fields:
+        tfsdk, _, helpers = tf_type_for(f["gotype"])
+        parts.append(f"\t{f['go']} {tfsdk} `tfsdk:\"{f['tf']}\"`\n")
+    parts.append("}\n")
+
+    # Metadata
+    parts.append(f"""
+func (r *{res_name}) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {{
+\tresp.TypeName = req.ProviderTypeName + "_setting_{type_name}"
+}}
+
+func (r *{res_name}) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {{
+\tresp.Schema = schema.Schema{{
+\t\tMarkdownDescription: "{desc}",
+\t\tAttributes: map[string]schema.Attribute{{
+\t\t\t"id": schema.StringAttribute{{Computed: true, PlanModifiers: []planmodifier.String{{stringplanmodifier.UseStateForUnknown()}}}},
+\t\t\t"site": schema.StringAttribute{{
+\t\t\t\tOptional: true, Computed: true,
+\t\t\t\tPlanModifiers: []planmodifier.String{{stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown()}},
+\t\t\t}},
+""")
+
+    # Per-field schema
+    for f in fields:
+        _, attr_ctor, helpers = tf_type_for(f["gotype"])
+        # Prefer a hand-authored description; fall back to the SDK comment
+        # (usually the raw regex/enum), then to a bare stub.
+        raw_desc = DESCRIPTIONS.get((key, f["tf"])) or f["comment"] or f"{f['json']} field"
+        comment = raw_desc.replace("\\", "\\\\").replace('"', '\\"').strip()
+        pm_pkg = helpers["plan_mod_pkg"]
+        pm_type = {"boolplanmodifier": "Bool", "stringplanmodifier": "String",
+                   "int64planmodifier": "Int64", "listplanmodifier": "List"}[pm_pkg]
+        list_kw = helpers["list_kw"]
+        list_kw_line = f"\n\t\t\t\t{list_kw}" if list_kw else ""
+        parts.append(f'\t\t\t"{f["tf"]}": {attr_ctor}{{\n')
+        parts.append(f'\t\t\t\tMarkdownDescription: "{comment}",\n')
+        parts.append(f"\t\t\t\tOptional: true, Computed: true,{list_kw_line}\n")
+        parts.append(f"\t\t\t\tPlanModifiers: []planmodifier.{pm_type}{{{pm_pkg}.UseStateForUnknown()}},\n")
+        parts.append("\t\t\t},\n")
+
+    parts.append("""\t\t},
+\t}
+}
+
+""")
+
+    # planmodifier base import
+    parts.append("""func (r *""" + res_name + """) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+\tif req.ProviderData == nil { return }
+\tclient, ok := req.ProviderData.(*Client)
+\tif !ok {
+\t\tresp.Diagnostics.AddError("Unexpected Resource Configure Type", fmt.Sprintf("Expected *Client, got: %T.", req.ProviderData))
+\t\treturn
+\t}
+\tr.client = client
+}
+
+func (r *""" + res_name + """) siteOrDefault(site types.String) string {
+\tif s := site.ValueString(); s != "" { return s }
+\treturn r.client.Site
+}
+
+""")
+
+    # CRUD: Create/Update both write via UpdateSetting; Read uses GetSetting; Delete drops state (settings can't be deleted)
+    parts.append(f"""func (r *{res_name}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {{
+\tvar plan {model_name}
+\tresp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+\tif resp.Diagnostics.HasError() {{ return }}
+\tsite := r.siteOrDefault(plan.Site)
+\tresp.Diagnostics.Append(r.writeAndRefresh(ctx, site, &plan)...)
+\tif resp.Diagnostics.HasError() {{ return }}
+\tresp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}}
+
+func (r *{res_name}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {{
+\tvar state {model_name}
+\tresp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+\tif resp.Diagnostics.HasError() {{ return }}
+\tsite := r.siteOrDefault(state.Site)
+
+\tmeta, current, err := ui.GetSetting[*settings.{struct}](r.client.ApiClient, ctx, site)
+\tif err != nil {{
+\t\tif _, ok := err.(*ui.NotFoundError); ok {{ resp.State.RemoveResource(ctx); return }}
+\t\tresp.Diagnostics.AddError("Error Reading {struct} Setting", err.Error())
+\t\treturn
+\t}}
+\tresp.Diagnostics.Append(r.settingToModel(ctx, meta, current, &state, site)...)
+\tresp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}}
+
+func (r *{res_name}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {{
+\tvar plan, state {model_name}
+\tresp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+\tresp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+\tif resp.Diagnostics.HasError() {{ return }}
+\tsite := r.siteOrDefault(state.Site)
+\tresp.Diagnostics.Append(r.writeAndRefresh(ctx, site, &plan)...)
+\tif resp.Diagnostics.HasError() {{ return }}
+\tresp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}}
+
+func (r *{res_name}) Delete(_ context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {{
+\t// Settings cannot be deleted from the controller; dropping from state only.
+}}
+
+func (r *{res_name}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {{
+\tresource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}}
+
+func (r *{res_name}) writeAndRefresh(ctx context.Context, site string, m *{model_name}) diag.Diagnostics {{
+\tvar diags diag.Diagnostics
+
+\t// Read current so unmodified fields aren't dropped to zero values.
+\t_, current, err := ui.GetSetting[*settings.{struct}](r.client.ApiClient, ctx, site)
+\tif err != nil {{
+\t\tif _, ok := err.(*ui.NotFoundError); !ok {{
+\t\t\tdiags.AddError("Error Reading {struct} Setting", err.Error())
+\t\t\treturn diags
+\t\t}}
+\t\tcurrent = &settings.{struct}{{}}
+\t}}
+
+\tr.applyModelToSetting(ctx, m, current, &diags)
+\tif diags.HasError() {{ return diags }}
+
+\tif err := r.client.UpdateSetting(ctx, site, current); err != nil {{
+\t\tdiags.AddError("Error Updating {struct} Setting", err.Error())
+\t\treturn diags
+\t}}
+
+\tmeta, refreshed, err := ui.GetSetting[*settings.{struct}](r.client.ApiClient, ctx, site)
+\tif err != nil {{
+\t\tdiags.AddError("Error Re-reading {struct} Setting", err.Error())
+\t\treturn diags
+\t}}
+\tdiags.Append(r.settingToModel(ctx, meta, refreshed, m, site)...)
+\treturn diags
+}}
+
+""")
+
+    # settingToModel
+    parts.append(f"func (r *{res_name}) settingToModel(ctx context.Context, meta *ui.Setting, s *settings.{struct}, m *{model_name}, site string) diag.Diagnostics {{\n")
+    parts.append("\tvar diags diag.Diagnostics\n")
+    parts.append("\tif meta != nil { m.ID = types.StringValue(meta.Id) }\n")
+    parts.append("\tm.Site = types.StringValue(site)\n")
+    parts.append("\t_ = ctx\n\t_ = diags\n")
+    for f in fields:
+        _, _, helpers = tf_type_for(f["gotype"])
+        expr = helpers["to_model"].format(src="s", Go=f["go"], model="m")
+        parts.append(f"\tm.{f['go']} = {expr}\n")
+    parts.append("\treturn diags\n}\n\n")
+
+    # applyModelToSetting
+    # Only overwrite SDK fields where the model has a real value (not null/unknown).
+    # This way fields the user did not declare retain their controller-current value
+    # (read into the SDK struct beforehand by writeAndRefresh).
+    parts.append(f"func (r *{res_name}) applyModelToSetting(ctx context.Context, m *{model_name}, s *settings.{struct}, diags *diag.Diagnostics) {{\n")
+    parts.append("\t_ = ctx\n\t_ = diags\n")
+    for f in fields:
+        _, _, helpers = tf_type_for(f["gotype"])
+        if helpers.get("complex"):
+            ctype = helpers["complex_type"]
+            parts.append(f"\tif !m.{f['go']}.IsNull() && !m.{f['go']}.IsUnknown() {{\n")
+            parts.append(f"\t\tvar val {ctype}\n")
+            parts.append(f"\t\tif err := json.Unmarshal([]byte(m.{f['go']}.ValueString()), &val); err != nil {{\n")
+            parts.append(f"\t\t\tdiags.AddError(\"Invalid {f['tf']}\", err.Error())\n")
+            parts.append(f"\t\t}} else {{ s.{f['go']} = val }}\n")
+            parts.append("\t}\n")
+        elif f["gotype"] == "[]string":
+            parts.append(f"\tif !m.{f['go']}.IsNull() && !m.{f['go']}.IsUnknown() {{\n")
+            parts.append(f"\t\tvar v []string\n")
+            parts.append(f"\t\tdiags.Append(m.{f['go']}.ElementsAs(ctx, &v, false)...)\n")
+            parts.append(f"\t\ts.{f['go']} = v\n")
+            parts.append("\t}\n")
+        else:
+            expr = helpers["to_sdk"].format(model="m", Go=f["go"])
+            parts.append(f"\tif !m.{f['go']}.IsNull() && !m.{f['go']}.IsUnknown() {{ s.{f['go']} = {expr} }}\n")
+    parts.append("}\n")
+
+    # Imports tidy: if no complex fields, json/diag may be unused; reference them via _ stmts
+    has_complex = any(tf_type_for(f["gotype"])[2].get("complex") for f in fields)
+    has_list = any(f["gotype"] == "[]string" for f in fields)
+    if not has_complex:
+        # use a no-op var to keep json imported is wasteful; instead let's only import json when needed
+        pass
+
+    return "".join(parts), has_complex, has_list, plan_mod_pkgs
+
+
+def gofmt(src: str, path: str) -> str:
+    """Run the emitted source through gofmt so a fresh regen is a zero-diff
+    no-op against the (already gofmt'd) committed files."""
+    p = subprocess.run(["gofmt"], input=src, capture_output=True, text=True)
+    if p.returncode != 0:
+        raise SystemExit(f"gofmt failed for {path}:\n{p.stderr}")
+    return p.stdout
+
+
+def main():
+    os.makedirs(OUT_DIR, exist_ok=True)
+    new_funcs = []
+    for key, struct, type_name, desc in TARGETS:
+        spath = os.path.join(SDK_DIR, f"{key}.generated.go")
+        fields = parse_struct(spath, struct)
+        code, has_complex, has_list, plan_mod_pkgs = emit(key, struct, type_name, desc, fields)
+
+        # rewrite header to drop unused imports
+        imports = ['\t"context"', '\t"fmt"', '\t"github.com/hashicorp/terraform-plugin-framework/diag"',
+                   '\t"github.com/hashicorp/terraform-plugin-framework/path"',
+                   '\t"github.com/hashicorp/terraform-plugin-framework/resource"',
+                   '\t"github.com/hashicorp/terraform-plugin-framework/resource/schema"',
+                   '\t"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"']
+        for p in sorted(plan_mod_pkgs):
+            imports.append(f'\t"github.com/hashicorp/terraform-plugin-framework/resource/schema/{p}"')
+        imports.append('\t"github.com/hashicorp/terraform-plugin-framework/types"')
+        imports.append('\tui "github.com/ubiquiti-community/go-unifi/unifi"')
+        imports.append('\t"github.com/ubiquiti-community/go-unifi/unifi/settings"')
+        if has_complex:
+            imports.insert(2, '\t"encoding/json"')
+        header = f"package unifi\n\n// Generated from go-unifi/unifi/settings/{key}.generated.go.\n// DO NOT EDIT MANUALLY — regenerate via scripts/gen_setting_resources.py.\n\nimport (\n" + "\n".join(imports) + "\n)\n"
+        # strip the inline header from emit() and prepend our cleaned one
+        body = code.split(")\n", 1)[1]
+        out = header + body
+
+        outpath = os.path.join(OUT_DIR, f"setting_{key}_resource.go")
+        out = gofmt(out, outpath)
+        open(outpath, "w").write(out)
+        new_funcs.append(f"NewSetting{struct}Resource")
+        print(f"WROTE {outpath}  ({len(fields)} fields)")
+
+    print()
+    print("Add to provider.go Resources():")
+    for n in new_funcs:
+        print(f"\t\t{n},")
+
+
+if __name__ == "__main__":
+    main()

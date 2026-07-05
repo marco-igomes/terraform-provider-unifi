@@ -18,6 +18,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -198,26 +201,41 @@ Clients are created in the controller when observed on the network, so the resou
 				MarkdownDescription: "QoS rate limiting configuration. Controls the client group (usergroup) used for bandwidth limits.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
 						MarkdownDescription: "The ID of the client group (usergroup). If set, this group is used directly.",
 						Optional:            true,
 						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"name": schema.StringAttribute{
 						MarkdownDescription: "The name of the client group. If set, the group is looked up or created by name.",
 						Optional:            true,
 						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"max_up": schema.Int64Attribute{
 						MarkdownDescription: "Maximum upload rate in kbps.",
 						Optional:            true,
 						Computed:            true,
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
 					},
 					"max_down": schema.Int64Attribute{
 						MarkdownDescription: "Maximum download rate in kbps.",
 						Optional:            true,
 						Computed:            true,
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 			},
@@ -230,34 +248,29 @@ Clients are created in the controller when observed on the network, so the resou
 				},
 			},
 			"fixed_ip": schema.StringAttribute{
+				// Not Computed: a null/omitted fixed_ip must yield a real diff so an
+				// existing reservation can be cleared (write path sets use_fixedip=false
+				// when empty). Computed would treat null as "keep prior state", which
+				// silently blocks unfixing an IP via HCL.
 				MarkdownDescription: "A fixed IPv4 address for this client.",
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"fixed_ap_mac": schema.StringAttribute{
-				MarkdownDescription: "The MAC address of the access point to which this client should be fixed.",
+				MarkdownDescription: "The MAC address of the access point to which this client should be fixed. Unset = no lock; managed authoritatively (not Computed), so a lock set outside Terraform surfaces as drift.",
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"network_id": schema.StringAttribute{
-				MarkdownDescription: "The network ID for this client.",
+				MarkdownDescription: "The network ID (virtual-network override) for this client. Unset = no override; managed authoritatively (not Computed), so an override set or cleared outside Terraform surfaces as drift.",
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"groups": schema.ListAttribute{
 				MarkdownDescription: "List of network members group names for this client.",
 				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"blocked": schema.BoolAttribute{
 				MarkdownDescription: "Specifies whether this client should be blocked from the network.",
@@ -372,7 +385,8 @@ func (r *clientResource) Create(
 			return
 		}
 
-		// MAC in use, just absorb the existing client
+		// MAC in use, adopt the existing controller record but push the planned
+		// fields on top so `name`/`blocked`/etc. from HCL reach the controller.
 		mac := plan.MAC.ValueString()
 		existingClient, err := r.client.GetClientByMAC(ctx, site, mac)
 		if err != nil {
@@ -383,16 +397,8 @@ func (r *clientResource) Create(
 			return
 		}
 
-		pclient, err := r.client.GetClient(ctx, site, existingClient.ID)
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error Getting Existing Client by ID",
-				"Could not get existing client with ID "+existingClient.ID+": "+err.Error(),
-			)
-		}
-
-		// Implement merge pattern for existing client
-		mergedClient := r.mergeClient(existingClient, pclient)
+		// Merge planned values (from `client`) over the existing controller record.
+		mergedClient := r.mergeClient(existingClient, client)
 		tflog.Info(ctx, "Merged Client: ")
 		updatedClient, err := r.client.UpdateClient(ctx, site, mergedClient)
 		if err != nil {
@@ -630,6 +636,10 @@ func (r *clientResource) Update(
 				return
 			}
 
+			// Config-only flags aren't round-tripped through the controller; carry them from plan.
+			state.AllowExisting = plan.AllowExisting
+			state.SkipForgetOnDestroy = plan.SkipForgetOnDestroy
+
 			// Update identity with MAC
 			identityModel := clientIdentityModel{
 				MAC: state.MAC,
@@ -672,6 +682,10 @@ func (r *clientResource) Update(
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Config-only flags aren't round-tripped through the controller; carry them from plan.
+	state.AllowExisting = plan.AllowExisting
+	state.SkipForgetOnDestroy = plan.SkipForgetOnDestroy
 
 	// Update identity with MAC
 	identityModel := clientIdentityModel{
@@ -873,15 +887,13 @@ func (r *clientResource) planToClient(
 		LocalDNSRecord:        localDNSRecord,
 		LocalDNSRecordEnabled: localDNSRecord != "",
 
-		// NetworkID maps to VirtualNetworkOverrideID with its enable flag
-		VirtualNetworkOverrideID: networkID,
+		// NetworkID maps to VirtualNetworkOverrideID and its enable flag (false when
+		// null, so a cleared override is actually cleared — mirrors FixedApEnabled above).
+		VirtualNetworkOverrideID:      networkID,
+		VirtualNetworkOverrideEnabled: util.Ptr(networkID != ""),
 
 		// Network members group IDs
 		NetworkMembersGroupIDs: networkMembersGroupIDs,
-	}
-
-	if networkID != "" {
-		client.VirtualNetworkOverrideEnabled = util.Ptr(true)
 	}
 
 	// Resolve qos_rate to a client group (usergroup) ID.
@@ -923,12 +935,31 @@ func (r *clientResource) clientToModel(
 	model.ID = util.StringValueOrNull(client.ID)
 	model.Site = util.StringValueOrNull(site)
 	model.MAC = util.StringValueOrNull(client.MAC)
-	model.Name = util.StringValueOrNull(client.Name)
+	model.Name = types.StringValue(client.Name) // preserve "" so HCL `name = ""` round-trips clean.
 	model.DisplayName = util.StringValueOrNull(client.DisplayName)
 	model.Note = util.StringValueOrNull(client.Note)
-	model.FixedIP = util.StringValueOrNull(client.FixedIP)
-	model.FixedApMAC = util.StringValueOrNull(client.FixedApMAC)
-	model.NetworkID = util.StringValueOrNull(client.VirtualNetworkOverrideID)
+	// The controller retains the fixed_ip string even when use_fixedip is false
+	// (the reservation is disabled, not deleted). Report null unless actually
+	// enforced, so a cleared reservation round-trips against `fixed_ip = null`.
+	if client.UseFixedIP {
+		model.FixedIP = util.StringValueOrNull(client.FixedIP)
+	} else {
+		model.FixedIP = types.StringNull()
+	}
+	// AP lock: fixed_ap_mac lingers on the controller when the lock is toggled off,
+	// so mirror fixed_ip above — report null unless enforced (a UI unlock then drifts).
+	if client.FixedApEnabled {
+		model.FixedApMAC = util.StringValueOrNull(client.FixedApMAC)
+	} else {
+		model.FixedApMAC = types.StringNull()
+	}
+	// Honor the enable flag: the controller keeps a stale VirtualNetworkOverrideID even when
+	// disabled, so report null unless the override is actually enabled (mirrors fixed_ap_mac).
+	if client.VirtualNetworkOverrideEnabled != nil && *client.VirtualNetworkOverrideEnabled {
+		model.NetworkID = util.StringValueOrNull(client.VirtualNetworkOverrideID)
+	} else {
+		model.NetworkID = types.StringNull()
+	}
 
 	// Populate qos_rate from the client's UserGroupID by looking up the client group.
 	if client.UserGroupID != "" {
@@ -1003,12 +1034,10 @@ func (r *clientResource) mergeClient(
 	merged.LocalDNSRecord = planned.LocalDNSRecord
 	merged.LocalDNSRecordEnabled = planned.LocalDNSRecord != ""
 
-	// NetworkID (maps to VirtualNetworkOverrideID) and its enable flag
+	// NetworkID (maps to VirtualNetworkOverrideID) and its enable flag — always set
+	// (false when cleared) so removing an override actually clears it, like FixedApEnabled below.
 	merged.VirtualNetworkOverrideID = planned.VirtualNetworkOverrideID
-
-	if planned.VirtualNetworkOverrideID != "" {
-		merged.VirtualNetworkOverrideEnabled = util.Ptr(true)
-	}
+	merged.VirtualNetworkOverrideEnabled = util.Ptr(planned.VirtualNetworkOverrideID != "")
 
 	// FixedAP and its enable flag
 	merged.FixedApMAC = planned.FixedApMAC
@@ -1374,8 +1403,12 @@ func (r *clientResource) List(
 			}
 
 			// Post-filter by network_id (OR across values): match VirtualNetworkOverrideID or NetworkID.
+			// Honor the enable flag — a disabled override leaves a stale ID behind (see clientToModel).
 			if len(networkIDFilter) > 0 {
-				clientNetworkID := client.VirtualNetworkOverrideID
+				clientNetworkID := ""
+				if client.VirtualNetworkOverrideEnabled != nil && *client.VirtualNetworkOverrideEnabled {
+					clientNetworkID = client.VirtualNetworkOverrideID
+				}
 				if clientNetworkID == "" {
 					clientNetworkID = client.NetworkID
 				}
