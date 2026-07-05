@@ -952,7 +952,13 @@ func (r *clientResource) clientToModel(
 	} else {
 		model.FixedIP = types.StringNull()
 	}
-	model.FixedApMAC = util.StringValueOrNull(client.FixedApMAC)
+	// AP lock: fixed_ap_mac lingers on the controller when the lock is toggled off,
+	// so mirror fixed_ip above — report null unless enforced (a UI unlock then drifts).
+	if client.FixedApEnabled {
+		model.FixedApMAC = util.StringValueOrNull(client.FixedApMAC)
+	} else {
+		model.FixedApMAC = types.StringNull()
+	}
 	model.NetworkID = util.StringValueOrNull(client.VirtualNetworkOverrideID)
 
 	// Populate qos_rate from the client's UserGroupID by looking up the client group.
