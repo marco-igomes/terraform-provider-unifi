@@ -508,8 +508,19 @@ func (r *settingResource) Create(
 			return
 		}
 
-		setting := r.mgmtModelToSetting(ctx, &mgmt)
-		if err := r.client.UpdateSetting(ctx, site, setting); err != nil {
+		// Read current remote settings as the base so unset fields keep their remote values
+		_, currentMgmt, err := ui.GetSetting[*settings.Mgmt](r.client.ApiClient, ctx, site)
+		if err != nil {
+			var notFound *ui.NotFoundError
+			if !errors.As(err, &notFound) {
+				resp.Diagnostics.AddError("Error Reading Mgmt Setting", err.Error())
+				return
+			}
+			currentMgmt = &settings.Mgmt{}
+		}
+
+		setting := r.mgmtModelToSetting(ctx, &mgmt, currentMgmt)
+		if err := r.client.updateChangedFields(ctx, site, currentMgmt, setting); err != nil {
 			resp.Diagnostics.AddError("Error Creating Mgmt Setting", err.Error())
 			return
 		}
@@ -534,7 +545,7 @@ func (r *settingResource) Create(
 		}
 
 		setting := r.radiusModelToSetting(ctx, &radius, currentRadius)
-		if err := r.client.UpdateSetting(ctx, site, setting); err != nil {
+		if err := r.client.updateChangedFields(ctx, site, currentRadius, setting); err != nil {
 			resp.Diagnostics.AddError("Error Creating Radius Setting", err.Error())
 			return
 		}
@@ -547,8 +558,19 @@ func (r *settingResource) Create(
 			return
 		}
 
-		setting := r.usgModelToSetting(ctx, &usg)
-		if err := r.client.UpdateSetting(ctx, site, setting); err != nil {
+		// Read current remote settings as the base so unset fields keep their remote values
+		_, currentUSG, err := ui.GetSetting[*settings.Usg](r.client.ApiClient, ctx, site)
+		if err != nil {
+			var notFound *ui.NotFoundError
+			if !errors.As(err, &notFound) {
+				resp.Diagnostics.AddError("Error Reading USG Setting", err.Error())
+				return
+			}
+			currentUSG = &settings.Usg{}
+		}
+
+		setting := r.usgModelToSetting(ctx, &usg, currentUSG)
+		if err := r.client.updateChangedFields(ctx, site, currentUSG, setting); err != nil {
 			resp.Diagnostics.AddError("Error Creating USG Setting", err.Error())
 			return
 		}
@@ -615,8 +637,19 @@ func (r *settingResource) Update(
 			return
 		}
 
-		setting := r.mgmtModelToSetting(ctx, &mgmt)
-		if err := r.client.UpdateSetting(ctx, site, setting); err != nil {
+		// Read current remote settings as the base so unset fields keep their remote values
+		_, currentMgmt, err := ui.GetSetting[*settings.Mgmt](r.client.ApiClient, ctx, site)
+		if err != nil {
+			var notFound *ui.NotFoundError
+			if !errors.As(err, &notFound) {
+				resp.Diagnostics.AddError("Error Reading Mgmt Setting", err.Error())
+				return
+			}
+			currentMgmt = &settings.Mgmt{}
+		}
+
+		setting := r.mgmtModelToSetting(ctx, &mgmt, currentMgmt)
+		if err := r.client.updateChangedFields(ctx, site, currentMgmt, setting); err != nil {
 			resp.Diagnostics.AddError("Error Updating Mgmt Setting", err.Error())
 			return
 		}
@@ -641,7 +674,7 @@ func (r *settingResource) Update(
 		}
 
 		setting := r.radiusModelToSetting(ctx, &radius, currentRadius)
-		if err := r.client.UpdateSetting(ctx, site, setting); err != nil {
+		if err := r.client.updateChangedFields(ctx, site, currentRadius, setting); err != nil {
 			resp.Diagnostics.AddError("Error Updating Radius Setting", err.Error())
 			return
 		}
@@ -654,8 +687,19 @@ func (r *settingResource) Update(
 			return
 		}
 
-		setting := r.usgModelToSetting(ctx, &usg)
-		if err := r.client.UpdateSetting(ctx, site, setting); err != nil {
+		// Read current remote settings as the base so unset fields keep their remote values
+		_, currentUSG, err := ui.GetSetting[*settings.Usg](r.client.ApiClient, ctx, site)
+		if err != nil {
+			var notFound *ui.NotFoundError
+			if !errors.As(err, &notFound) {
+				resp.Diagnostics.AddError("Error Reading USG Setting", err.Error())
+				return
+			}
+			currentUSG = &settings.Usg{}
+		}
+
+		setting := r.usgModelToSetting(ctx, &usg, currentUSG)
+		if err := r.client.updateChangedFields(ctx, site, currentUSG, setting); err != nil {
 			resp.Diagnostics.AddError("Error Updating USG Setting", err.Error())
 			return
 		}
@@ -914,30 +958,40 @@ func (r *settingResource) readSettings(
 func (r *settingResource) mgmtModelToSetting(
 	ctx context.Context,
 	model *settingMgmtModel,
+	base *settings.Mgmt,
 ) *settings.Mgmt {
-	setting := &settings.Mgmt{}
+	setting := *base
 
-	if !model.AutoUpgrade.IsNull() {
+	if !model.AutoUpgrade.IsNull() && !model.AutoUpgrade.IsUnknown() {
 		setting.AutoUpgrade = model.AutoUpgrade.ValueBool()
 	}
-	if !model.SSHEnabled.IsNull() {
+	if !model.SSHEnabled.IsNull() && !model.SSHEnabled.IsUnknown() {
 		setting.SSHEnabled = model.SSHEnabled.ValueBool()
 	}
 
 	if !model.SSHKeys.IsNull() && !model.SSHKeys.IsUnknown() {
 		var sshKeys []sshKeyModel
 		model.SSHKeys.ElementsAs(ctx, &sshKeys, false)
+		setting.SSHKeys = make([]settings.SettingMgmtSSHKeys, 0, len(sshKeys))
 		for _, sshKey := range sshKeys {
-			setting.SSHKeys = append(setting.SSHKeys, settings.SettingMgmtSSHKeys{
+			key := settings.SettingMgmtSSHKeys{
 				Name:    sshKey.Name.ValueString(),
 				KeyType: sshKey.Type.ValueString(),
 				Key:     sshKey.Key.ValueString(),
 				Comment: sshKey.Comment.ValueString(),
-			})
+			}
+			// Date and fingerprint have no attribute; keep the remote values.
+			for _, baseKey := range base.SSHKeys {
+				if baseKey.Key == key.Key {
+					key.Date = baseKey.Date
+					key.Fingerprint = baseKey.Fingerprint
+				}
+			}
+			setting.SSHKeys = append(setting.SSHKeys, key)
 		}
 	}
 
-	return setting
+	return &setting
 }
 
 func (r *settingResource) mgmtSettingToModel(
@@ -1010,7 +1064,7 @@ func (r *settingResource) radiusModelToSetting(
 	model *settingRadiusModel,
 	base *settings.Radius,
 ) *settings.Radius {
-	setting := base
+	setting := *base
 
 	if !model.AccountingEnabled.IsNull() && !model.AccountingEnabled.IsUnknown() {
 		setting.AccountingEnabled = model.AccountingEnabled.ValueBool()
@@ -1028,7 +1082,7 @@ func (r *settingResource) radiusModelToSetting(
 		setting.Secret = model.Secret.ValueString()
 	}
 
-	return setting
+	return &setting
 }
 
 func (r *settingResource) radiusSettingToModel(
@@ -1064,129 +1118,141 @@ func (r *settingResource) radiusSettingToModel(
 func (r *settingResource) usgModelToSetting(
 	ctx context.Context,
 	model *settingUSGModel,
+	base *settings.Usg,
 ) *settings.Usg {
-	setting := &settings.Usg{}
+	setting := *base
 
-	if !model.BroadcastPing.IsNull() {
+	if !model.BroadcastPing.IsNull() && !model.BroadcastPing.IsUnknown() {
 		setting.BroadcastPing = model.BroadcastPing.ValueBool()
 	}
 	if !model.DNSVerification.IsNull() && !model.DNSVerification.IsUnknown() {
 		var dnsVerif dnsVerificationModel
 		model.DNSVerification.As(ctx, &dnsVerif, basetypes.ObjectAsOptions{})
-		setting.DNSVerification = &settings.SettingUsgDNSVerification{
-			Domain:             dnsVerif.Domain.ValueString(),
-			PrimaryDNSServer:   dnsVerif.PrimaryDNSServer.ValueString(),
-			SecondaryDNSServer: dnsVerif.SecondaryDNSServer.ValueString(),
-			SettingPreference:  dnsVerif.SettingPreference.ValueString(),
+		dnsVerification := settings.SettingUsgDNSVerification{}
+		if base.DNSVerification != nil {
+			dnsVerification = *base.DNSVerification
 		}
+		if !dnsVerif.Domain.IsNull() && !dnsVerif.Domain.IsUnknown() {
+			dnsVerification.Domain = dnsVerif.Domain.ValueString()
+		}
+		if !dnsVerif.PrimaryDNSServer.IsNull() && !dnsVerif.PrimaryDNSServer.IsUnknown() {
+			dnsVerification.PrimaryDNSServer = dnsVerif.PrimaryDNSServer.ValueString()
+		}
+		if !dnsVerif.SecondaryDNSServer.IsNull() && !dnsVerif.SecondaryDNSServer.IsUnknown() {
+			dnsVerification.SecondaryDNSServer = dnsVerif.SecondaryDNSServer.ValueString()
+		}
+		if !dnsVerif.SettingPreference.IsNull() && !dnsVerif.SettingPreference.IsUnknown() {
+			dnsVerification.SettingPreference = dnsVerif.SettingPreference.ValueString()
+		}
+		setting.DNSVerification = &dnsVerification
 	}
-	if !model.FtpModule.IsNull() {
+	if !model.FtpModule.IsNull() && !model.FtpModule.IsUnknown() {
 		setting.FtpModule = model.FtpModule.ValueBool()
 	}
-	if !model.GeoIPFilteringBlock.IsNull() {
+	if !model.GeoIPFilteringBlock.IsNull() && !model.GeoIPFilteringBlock.IsUnknown() {
 		setting.GeoIPFilteringBlock = model.GeoIPFilteringBlock.ValueString()
 	}
-	if !model.GeoIPFilteringCountries.IsNull() {
+	if !model.GeoIPFilteringCountries.IsNull() && !model.GeoIPFilteringCountries.IsUnknown() {
 		setting.GeoIPFilteringCountries = model.GeoIPFilteringCountries.ValueString()
 	}
-	if !model.GeoIPFilteringEnabled.IsNull() {
+	if !model.GeoIPFilteringEnabled.IsNull() && !model.GeoIPFilteringEnabled.IsUnknown() {
 		setting.GeoIPFilteringEnabled = model.GeoIPFilteringEnabled.ValueBool()
 	}
-	if !model.GeoIPFilteringTrafficDirection.IsNull() {
+	if !model.GeoIPFilteringTrafficDirection.IsNull() && !model.GeoIPFilteringTrafficDirection.IsUnknown() {
 		setting.GeoIPFilteringTrafficDirection = model.GeoIPFilteringTrafficDirection.ValueString()
 	}
-	if !model.GreModule.IsNull() {
+	if !model.GreModule.IsNull() && !model.GreModule.IsUnknown() {
 		setting.GreModule = model.GreModule.ValueBool()
 	}
-	if !model.H323Module.IsNull() {
+	if !model.H323Module.IsNull() && !model.H323Module.IsUnknown() {
 		setting.H323Module = model.H323Module.ValueBool()
 	}
-	if !model.ICMPTimeout.IsNull() {
+	if !model.ICMPTimeout.IsNull() && !model.ICMPTimeout.IsUnknown() {
 		setting.ICMPTimeout = model.ICMPTimeout.ValueInt64()
 	}
-	if !model.MssClamp.IsNull() {
+	if !model.MssClamp.IsNull() && !model.MssClamp.IsUnknown() {
 		setting.MssClamp = model.MssClamp.ValueString()
 	}
-	if !model.OffloadAccounting.IsNull() {
+	if !model.OffloadAccounting.IsNull() && !model.OffloadAccounting.IsUnknown() {
 		setting.OffloadAccounting = model.OffloadAccounting.ValueBool()
 	}
-	if !model.OffloadL2Blocking.IsNull() {
+	if !model.OffloadL2Blocking.IsNull() && !model.OffloadL2Blocking.IsUnknown() {
 		setting.OffloadL2Blocking = model.OffloadL2Blocking.ValueBool()
 	}
-	if !model.OffloadSch.IsNull() {
+	if !model.OffloadSch.IsNull() && !model.OffloadSch.IsUnknown() {
 		setting.OffloadSch = model.OffloadSch.ValueBool()
 	}
-	if !model.OtherTimeout.IsNull() {
+	if !model.OtherTimeout.IsNull() && !model.OtherTimeout.IsUnknown() {
 		setting.OtherTimeout = model.OtherTimeout.ValueInt64()
 	}
-	if !model.PptpModule.IsNull() {
+	if !model.PptpModule.IsNull() && !model.PptpModule.IsUnknown() {
 		setting.PptpModule = model.PptpModule.ValueBool()
 	}
-	if !model.ReceiveRedirects.IsNull() {
+	if !model.ReceiveRedirects.IsNull() && !model.ReceiveRedirects.IsUnknown() {
 		setting.ReceiveRedirects = model.ReceiveRedirects.ValueBool()
 	}
-	if !model.SendRedirects.IsNull() {
+	if !model.SendRedirects.IsNull() && !model.SendRedirects.IsUnknown() {
 		setting.SendRedirects = model.SendRedirects.ValueBool()
 	}
-	if !model.SipModule.IsNull() {
+	if !model.SipModule.IsNull() && !model.SipModule.IsUnknown() {
 		setting.SipModule = model.SipModule.ValueBool()
 	}
-	if !model.SynCookies.IsNull() {
+	if !model.SynCookies.IsNull() && !model.SynCookies.IsUnknown() {
 		setting.SynCookies = model.SynCookies.ValueBool()
 	}
-	if !model.TCPCloseTimeout.IsNull() {
+	if !model.TCPCloseTimeout.IsNull() && !model.TCPCloseTimeout.IsUnknown() {
 		setting.TCPCloseTimeout = model.TCPCloseTimeout.ValueInt64()
 	}
-	if !model.TCPCloseWaitTimeout.IsNull() {
+	if !model.TCPCloseWaitTimeout.IsNull() && !model.TCPCloseWaitTimeout.IsUnknown() {
 		setting.TCPCloseWaitTimeout = model.TCPCloseWaitTimeout.ValueInt64()
 	}
-	if !model.TCPEstablishedTimeout.IsNull() {
+	if !model.TCPEstablishedTimeout.IsNull() && !model.TCPEstablishedTimeout.IsUnknown() {
 		setting.TCPEstablishedTimeout = model.TCPEstablishedTimeout.ValueInt64()
 	}
-	if !model.TCPFinWaitTimeout.IsNull() {
+	if !model.TCPFinWaitTimeout.IsNull() && !model.TCPFinWaitTimeout.IsUnknown() {
 		setting.TCPFinWaitTimeout = model.TCPFinWaitTimeout.ValueInt64()
 	}
-	if !model.TCPLastAckTimeout.IsNull() {
+	if !model.TCPLastAckTimeout.IsNull() && !model.TCPLastAckTimeout.IsUnknown() {
 		setting.TCPLastAckTimeout = model.TCPLastAckTimeout.ValueInt64()
 	}
-	if !model.TCPSynRecvTimeout.IsNull() {
+	if !model.TCPSynRecvTimeout.IsNull() && !model.TCPSynRecvTimeout.IsUnknown() {
 		setting.TCPSynRecvTimeout = model.TCPSynRecvTimeout.ValueInt64()
 	}
-	if !model.TCPSynSentTimeout.IsNull() {
+	if !model.TCPSynSentTimeout.IsNull() && !model.TCPSynSentTimeout.IsUnknown() {
 		setting.TCPSynSentTimeout = model.TCPSynSentTimeout.ValueInt64()
 	}
-	if !model.TCPTimeWaitTimeout.IsNull() {
+	if !model.TCPTimeWaitTimeout.IsNull() && !model.TCPTimeWaitTimeout.IsUnknown() {
 		setting.TCPTimeWaitTimeout = model.TCPTimeWaitTimeout.ValueInt64()
 	}
-	if !model.TFTPModule.IsNull() {
+	if !model.TFTPModule.IsNull() && !model.TFTPModule.IsUnknown() {
 		setting.TFTPModule = model.TFTPModule.ValueBool()
 	}
-	if !model.TimeoutSettingPreference.IsNull() {
+	if !model.TimeoutSettingPreference.IsNull() && !model.TimeoutSettingPreference.IsUnknown() {
 		setting.TimeoutSettingPreference = model.TimeoutSettingPreference.ValueString()
 	}
-	if !model.UDPOtherTimeout.IsNull() {
+	if !model.UDPOtherTimeout.IsNull() && !model.UDPOtherTimeout.IsUnknown() {
 		setting.UDPOtherTimeout = model.UDPOtherTimeout.ValueInt64()
 	}
-	if !model.UDPStreamTimeout.IsNull() {
+	if !model.UDPStreamTimeout.IsNull() && !model.UDPStreamTimeout.IsUnknown() {
 		setting.UDPStreamTimeout = model.UDPStreamTimeout.ValueInt64()
 	}
-	if !model.UnbindWANMonitors.IsNull() {
+	if !model.UnbindWANMonitors.IsNull() && !model.UnbindWANMonitors.IsUnknown() {
 		setting.UnbindWANMonitors = model.UnbindWANMonitors.ValueBool()
 	}
-	if !model.UPnPEnabled.IsNull() {
+	if !model.UPnPEnabled.IsNull() && !model.UPnPEnabled.IsUnknown() {
 		setting.UPnPEnabled = model.UPnPEnabled.ValueBool()
 	}
-	if !model.UPnPNATPmpEnabled.IsNull() {
+	if !model.UPnPNATPmpEnabled.IsNull() && !model.UPnPNATPmpEnabled.IsUnknown() {
 		setting.UPnPNATPmpEnabled = model.UPnPNATPmpEnabled.ValueBool()
 	}
-	if !model.UPnPSecureMode.IsNull() {
+	if !model.UPnPSecureMode.IsNull() && !model.UPnPSecureMode.IsUnknown() {
 		setting.UPnPSecureMode = model.UPnPSecureMode.ValueBool()
 	}
-	if !model.UPnPWANInterface.IsNull() {
+	if !model.UPnPWANInterface.IsNull() && !model.UPnPWANInterface.IsUnknown() {
 		setting.UPnPWANInterface = model.UPnPWANInterface.ValueString()
 	}
 
-	return setting
+	return &setting
 }
 
 func (r *settingResource) usgSettingToModel(

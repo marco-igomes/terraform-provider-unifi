@@ -1,9 +1,15 @@
 package unifi
 
 import (
+	"context"
+	"encoding/json"
+	"reflect"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/ubiquiti-community/go-unifi/unifi/settings"
 )
 
 func TestAccSettingResource_mgmt(t *testing.T) {
@@ -330,4 +336,133 @@ resource "unifi_setting" "test" {
   }
 }
 `
+}
+
+func TestSettingMgmtChangedFields(t *testing.T) {
+	ctx := context.Background()
+	current := &settings.Mgmt{}
+	if err := json.Unmarshal([]byte(`{
+		"key": "mgmt",
+		"auto_upgrade": true,
+		"auto_upgrade_hour": 5,
+		"led_enabled": true,
+		"x_ssh_auth_password_enabled": true,
+		"x_ssh_enabled": true,
+		"x_ssh_username": "admin",
+		"x_ssh_keys": [{"name": "laptop", "type": "ssh-rsa", "key": "AAAA", "comment": "laptop",
+			"date": "2024-01-09T00:55:35Z", "fingerprint": "6f:5f:f4:52"}]
+	}`), current); err != nil {
+		t.Fatal(err)
+	}
+	sshKeys, diags := types.ListValueFrom(ctx, types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"name":    types.StringType,
+			"type":    types.StringType,
+			"key":     types.StringType,
+			"comment": types.StringType,
+		},
+	}, []sshKeyModel{{
+		Name:    types.StringValue("laptop"),
+		Type:    types.StringValue("ssh-rsa"),
+		Key:     types.StringValue("AAAA"),
+		Comment: types.StringValue("laptop"),
+	}})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	model := &settingMgmtModel{
+		AutoUpgrade: types.BoolValue(false),
+		SSHEnabled:  types.BoolUnknown(),
+		SSHKeys:     sshKeys,
+	}
+
+	changed, err := changedFields(current, (&settingResource{}).mgmtModelToSetting(ctx, model, current))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]any{"auto_upgrade": false}
+	if !reflect.DeepEqual(changed, want) {
+		t.Errorf("changed = %v, want %v", changed, want)
+	}
+}
+
+func TestSettingUSGChangedFields(t *testing.T) {
+	ctx := context.Background()
+	current := &settings.Usg{}
+	if err := json.Unmarshal([]byte(`{
+		"key": "usg",
+		"dhcp_relay_hop_count": "",
+		"dhcp_relay_port": "",
+		"ftp_module": true,
+		"lldp_enable_all": true,
+		"upnp_enabled": true,
+		"dns_verification": {"domain": "ui.com", "primary_dns_server": "1.1.1.1",
+			"secondary_dns_server": "8.8.8.8", "setting_preference": "auto"}
+	}`), current); err != nil {
+		t.Fatal(err)
+	}
+	dnsVerification, diags := types.ObjectValueFrom(ctx, map[string]attr.Type{
+		"domain":               types.StringType,
+		"primary_dns_server":   types.StringType,
+		"secondary_dns_server": types.StringType,
+		"setting_preference":   types.StringType,
+	}, dnsVerificationModel{
+		Domain:             types.StringValue("ui.com"),
+		PrimaryDNSServer:   types.StringValue("9.9.9.9"),
+		SecondaryDNSServer: types.StringUnknown(),
+		SettingPreference:  types.StringNull(),
+	})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	model := &settingUSGModel{
+		FtpModule:       types.BoolValue(false),
+		UPnPEnabled:     types.BoolUnknown(),
+		DNSVerification: dnsVerification,
+	}
+
+	changed, err := changedFields(current, (&settingResource{}).usgModelToSetting(ctx, model, current))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]any{
+		"ftp_module": false,
+		"dns_verification": map[string]any{
+			"domain":               "ui.com",
+			"primary_dns_server":   "9.9.9.9",
+			"secondary_dns_server": "8.8.8.8",
+			"setting_preference":   "auto",
+		},
+	}
+	if !reflect.DeepEqual(changed, want) {
+		t.Errorf("changed = %v, want %v", changed, want)
+	}
+}
+
+func TestSettingRadiusChangedFields(t *testing.T) {
+	ctx := context.Background()
+	current := &settings.Radius{}
+	if err := json.Unmarshal([]byte(`{
+		"key": "radius",
+		"accounting_enabled": false,
+		"auth_port": 1812,
+		"acct_port": 1813,
+		"x_secret": "secret"
+	}`), current); err != nil {
+		t.Fatal(err)
+	}
+	model := &settingRadiusModel{
+		AccountingEnabled: types.BoolValue(false),
+		AuthPort:          types.Int64Value(1812),
+		AcctPort:          types.Int64Value(1814),
+	}
+
+	changed, err := changedFields(current, (&settingResource{}).radiusModelToSetting(ctx, model, current))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]any{"acct_port": float64(1814)}
+	if !reflect.DeepEqual(changed, want) {
+		t.Errorf("changed = %v, want %v", changed, want)
+	}
 }
