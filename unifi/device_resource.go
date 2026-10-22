@@ -3,6 +3,7 @@ package unifi
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/ubiquiti-community/go-unifi/unifi"
 	"github.com/ubiquiti-community/terraform-provider-unifi/unifi/util/retry"
 )
@@ -1459,26 +1461,74 @@ func (r *deviceResource) updateDevice(
 		return diags
 	}
 
-	// Wait for device to be in connected state
-	if d, err := r.waitForDeviceState(
-		ctx,
-		site, device.MAC,
-		unifi.DeviceStateConnected,
-		[]unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStateProvisioning},
-		1*time.Minute,
-	); err != nil {
+	// Right after the PUT, stat/device can still show the old values while the device is connected.
+	if err := retry.RetryContext(ctx, 1*time.Minute, func() *retry.RetryError {
+		d, err := r.waitForDeviceState(
+			ctx,
+			site, device.MAC,
+			unifi.DeviceStateConnected,
+			[]unifi.DeviceState{unifi.DeviceStateAdopting, unifi.DeviceStateProvisioning},
+			1*time.Minute,
+		)
+		if err != nil {
+			return retry.NonRetryableError(err)
+		}
+		if stale := r.staleAttributes(ctx, d, model, site); len(stale) > 0 {
+			tflog.Debug(ctx, "Device does not show the new values yet", map[string]any{
+				"mac":        d.MAC,
+				"attributes": stale,
+			})
+			return retry.RetryableError(
+				fmt.Errorf("the device does not show the new %s", strings.Join(stale, ", ")),
+			)
+		}
+		device = d
+		return nil
+	}); err != nil {
 		diags.AddError(
 			"Error Waiting for Device Update",
 			fmt.Sprintf("Could not wait for device update: %s", err),
 		)
 		return diags
-	} else {
-		device = d
 	}
 
 	// Update state from API response
 	r.setResourceData(ctx, &diags, device, model, site)
 	return diags
+}
+
+// staleAttributes names the attributes with a known, non-null value in model that differ in the
+// device's read. It leaves out state, which the caller waits for, and mac, which compares by
+// semantic equality.
+func (r *deviceResource) staleAttributes(
+	ctx context.Context,
+	device *unifi.Device,
+	model *deviceResourceModel,
+	site string,
+) []string {
+	var diags diag.Diagnostics
+	read := *model
+	r.setResourceData(ctx, &diags, device, &read, site)
+
+	modelFields := reflect.ValueOf(model).Elem()
+	readFields := reflect.ValueOf(&read).Elem()
+	var stale []string
+	for i := range modelFields.NumField() {
+		name := modelFields.Type().Field(i).Tag.Get("tfsdk")
+		value, ok := modelFields.Field(i).Interface().(attr.Value)
+		if !ok || value.IsNull() || name == "state" || name == "mac" {
+			continue
+		}
+		terraformValue, err := value.ToTerraformValue(ctx)
+		if err != nil || !terraformValue.IsFullyKnown() {
+			continue
+		}
+		readValue, _ := readFields.Field(i).Interface().(attr.Value)
+		if !value.Equal(readValue) {
+			stale = append(stale, name)
+		}
+	}
+	return stale
 }
 
 func (r *deviceResource) setResourceData(
