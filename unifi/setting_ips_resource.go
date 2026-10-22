@@ -215,7 +215,7 @@ func (r *settingIpsResource) ImportState(ctx context.Context, req resource.Impor
 func (r *settingIpsResource) writeAndRefresh(ctx context.Context, site string, m *settingIpsModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	// Read current so unmodified fields aren't dropped to zero values.
+	// Read current so the update sends only the fields that differ from it.
 	_, current, err := ui.GetSetting[*settings.Ips](r.client.ApiClient, ctx, site)
 	if err != nil {
 		if _, ok := err.(*ui.NotFoundError); !ok {
@@ -225,12 +225,13 @@ func (r *settingIpsResource) writeAndRefresh(ctx context.Context, site string, m
 		current = &settings.Ips{}
 	}
 
-	r.applyModelToSetting(ctx, m, current, &diags)
+	setting := *current
+	r.applyModelToSetting(ctx, m, &setting, &diags)
 	if diags.HasError() {
 		return diags
 	}
 
-	if err := r.client.UpdateSetting(ctx, site, current); err != nil {
+	if err := r.client.updateChangedFields(ctx, site, current, &setting); err != nil {
 		diags.AddError("Error Updating Ips Setting", err.Error())
 		return diags
 	}

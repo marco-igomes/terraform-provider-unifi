@@ -359,7 +359,7 @@ func (r *""" + res_name + """) siteOrDefault(site types.String) string {
 
 """)
 
-    # CRUD: Create/Update both write via UpdateSetting; Read uses GetSetting; Delete drops state (settings can't be deleted)
+    # CRUD: Create/Update both write via updateChangedFields; Read uses GetSetting; Delete drops state (settings can't be deleted)
     parts.append(f"""func (r *{res_name}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {{
 \tvar plan {model_name}
 \tresp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -408,7 +408,7 @@ func (r *{res_name}) ImportState(ctx context.Context, req resource.ImportStateRe
 func (r *{res_name}) writeAndRefresh(ctx context.Context, site string, m *{model_name}) diag.Diagnostics {{
 \tvar diags diag.Diagnostics
 
-\t// Read current so unmodified fields aren't dropped to zero values.
+\t// Read current so the update sends only the fields that differ from it.
 \t_, current, err := ui.GetSetting[*settings.{struct}](r.client.ApiClient, ctx, site)
 \tif err != nil {{
 \t\tif _, ok := err.(*ui.NotFoundError); !ok {{
@@ -418,10 +418,11 @@ func (r *{res_name}) writeAndRefresh(ctx context.Context, site string, m *{model
 \t\tcurrent = &settings.{struct}{{}}
 \t}}
 
-\tr.applyModelToSetting(ctx, m, current, &diags)
+\tsetting := *current
+\tr.applyModelToSetting(ctx, m, &setting, &diags)
 \tif diags.HasError() {{ return diags }}
 
-\tif err := r.client.UpdateSetting(ctx, site, current); err != nil {{
+\tif err := r.client.updateChangedFields(ctx, site, current, &setting); err != nil {{
 \t\tdiags.AddError("Error Updating {struct} Setting", err.Error())
 \t\treturn diags
 \t}}

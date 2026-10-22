@@ -162,7 +162,7 @@ func (r *settingNtpResource) ImportState(ctx context.Context, req resource.Impor
 func (r *settingNtpResource) writeAndRefresh(ctx context.Context, site string, m *settingNtpModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	// Read current so unmodified fields aren't dropped to zero values.
+	// Read current so the update sends only the fields that differ from it.
 	_, current, err := ui.GetSetting[*settings.Ntp](r.client.ApiClient, ctx, site)
 	if err != nil {
 		if _, ok := err.(*ui.NotFoundError); !ok {
@@ -172,12 +172,13 @@ func (r *settingNtpResource) writeAndRefresh(ctx context.Context, site string, m
 		current = &settings.Ntp{}
 	}
 
-	r.applyModelToSetting(ctx, m, current, &diags)
+	setting := *current
+	r.applyModelToSetting(ctx, m, &setting, &diags)
 	if diags.HasError() {
 		return diags
 	}
 
-	if err := r.client.UpdateSetting(ctx, site, current); err != nil {
+	if err := r.client.updateChangedFields(ctx, site, current, &setting); err != nil {
 		diags.AddError("Error Updating Ntp Setting", err.Error())
 		return diags
 	}

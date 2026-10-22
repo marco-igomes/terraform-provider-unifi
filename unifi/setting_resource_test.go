@@ -3,12 +3,18 @@ package unifi
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"path"
 	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	ui "github.com/ubiquiti-community/go-unifi/unifi"
 	"github.com/ubiquiti-community/go-unifi/unifi/settings"
 )
 
@@ -465,4 +471,130 @@ func TestSettingRadiusChangedFields(t *testing.T) {
 	if !reflect.DeepEqual(changed, want) {
 		t.Errorf("changed = %v, want %v", changed, want)
 	}
+}
+
+func TestSettingGeneratedChangedFields(t *testing.T) {
+	ctx := context.Background()
+	site := "default"
+	live := map[string]string{
+		"country":      `{"key": "country", "code": "620"}`,
+		"guest_access": `{"key": "guest_access", "auth": "none", "expire": 1440}`,
+		"radio_ai": `{"key": "radio_ai", "enabled": false,
+			"channels_ng": ["1", "6", "11"], "ht_modes_ng": ["20"]}`,
+		"rsyslogd": `{"key": "rsyslogd", "enabled": true, "debug": false,
+			"port": "514", "netconsole_port": "514"}`,
+		"connectivity": `{"key": "connectivity", "enabled": true, "uplink_type": "gateway"}`,
+		"ips": `{"key": "ips", "ips_mode": "ips", "dns_filters": [{"name": "", "description": "",
+			"filter": "none", "network_id": "lan", "version": "v4",
+			"allowed_sites": [], "blocked_sites": [], "blocked_tld": []}]}`,
+	}
+	var sent []map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Error(err)
+			}
+			sent = append(sent, body)
+		}
+		fmt.Fprintf(w, `{"meta": {"rc": "ok"}, "data": [%s]}`, live[path.Base(r.URL.Path)])
+	}))
+	defer server.Close()
+	apiClient, err := ui.New(ctx, &ui.Config{BaseURL: server.URL, APIKey: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &Client{ApiClient: apiClient, Site: site}
+
+	// Each plan is the state that a read of live gives, with at most one field changed.
+	tests := []struct {
+		name  string
+		write func() diag.Diagnostics
+		want  []map[string]any
+	}{
+		{
+			name: "country unchanged",
+			write: func() diag.Diagnostics {
+				r := &settingCountryResource{client: client}
+				var plan settingCountryModel
+				current := decodeSetting[settings.Country](t, live["country"])
+				r.settingToModel(ctx, nil, current, &plan, site)
+				return r.writeAndRefresh(ctx, site, &plan)
+			},
+		},
+		{
+			name: "guest_access unchanged",
+			write: func() diag.Diagnostics {
+				r := &settingGuestAccessResource{client: client}
+				var plan settingGuestAccessModel
+				current := decodeSetting[settings.GuestAccess](t, live["guest_access"])
+				r.settingToModel(ctx, nil, current, &plan, site)
+				return r.writeAndRefresh(ctx, site, &plan)
+			},
+		},
+		{
+			name: "radio_ai unchanged",
+			write: func() diag.Diagnostics {
+				r := &settingRadioAiResource{client: client}
+				var plan settingRadioAiModel
+				current := decodeSetting[settings.RadioAi](t, live["radio_ai"])
+				r.settingToModel(ctx, nil, current, &plan, site)
+				return r.writeAndRefresh(ctx, site, &plan)
+			},
+		},
+		{
+			name: "rsyslogd debug changed",
+			write: func() diag.Diagnostics {
+				r := &settingRsyslogdResource{client: client}
+				var plan settingRsyslogdModel
+				current := decodeSetting[settings.Rsyslogd](t, live["rsyslogd"])
+				r.settingToModel(ctx, nil, current, &plan, site)
+				plan.Debug = types.BoolValue(true)
+				return r.writeAndRefresh(ctx, site, &plan)
+			},
+			want: []map[string]any{{"key": "rsyslogd", "debug": true}},
+		},
+		{
+			name: "connectivity enabled changed",
+			write: func() diag.Diagnostics {
+				r := &settingConnectivityResource{client: client}
+				var plan settingConnectivityModel
+				current := decodeSetting[settings.Connectivity](t, live["connectivity"])
+				r.settingToModel(ctx, nil, current, &plan, site)
+				plan.Enabled = types.BoolValue(false)
+				return r.writeAndRefresh(ctx, site, &plan)
+			},
+			want: []map[string]any{{"key": "connectivity", "enabled": false}},
+		},
+		{
+			name: "ips ips_mode changed",
+			write: func() diag.Diagnostics {
+				r := &settingIpsResource{client: client}
+				var plan settingIpsModel
+				current := decodeSetting[settings.Ips](t, live["ips"])
+				r.settingToModel(ctx, nil, current, &plan, site)
+				plan.IPsMode = types.StringValue("ids")
+				return r.writeAndRefresh(ctx, site, &plan)
+			},
+			want: []map[string]any{{"key": "ips", "ips_mode": "ids"}},
+		},
+	}
+	for _, test := range tests {
+		sent = nil
+		if diags := test.write(); diags.HasError() {
+			t.Errorf("%s: %v", test.name, diags)
+		}
+		if !reflect.DeepEqual(sent, test.want) {
+			t.Errorf("%s: sent %v, want %v", test.name, sent, test.want)
+		}
+	}
+}
+
+func decodeSetting[T any](t *testing.T, raw string) *T {
+	t.Helper()
+	var setting T
+	if err := json.Unmarshal([]byte(raw), &setting); err != nil {
+		t.Fatal(err)
+	}
+	return &setting
 }

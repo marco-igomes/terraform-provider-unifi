@@ -138,7 +138,7 @@ func (r *settingLocaleResource) ImportState(ctx context.Context, req resource.Im
 func (r *settingLocaleResource) writeAndRefresh(ctx context.Context, site string, m *settingLocaleModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	// Read current so unmodified fields aren't dropped to zero values.
+	// Read current so the update sends only the fields that differ from it.
 	_, current, err := ui.GetSetting[*settings.Locale](r.client.ApiClient, ctx, site)
 	if err != nil {
 		if _, ok := err.(*ui.NotFoundError); !ok {
@@ -148,12 +148,13 @@ func (r *settingLocaleResource) writeAndRefresh(ctx context.Context, site string
 		current = &settings.Locale{}
 	}
 
-	r.applyModelToSetting(ctx, m, current, &diags)
+	setting := *current
+	r.applyModelToSetting(ctx, m, &setting, &diags)
 	if diags.HasError() {
 		return diags
 	}
 
-	if err := r.client.UpdateSetting(ctx, site, current); err != nil {
+	if err := r.client.updateChangedFields(ctx, site, current, &setting); err != nil {
 		diags.AddError("Error Updating Locale Setting", err.Error())
 		return diags
 	}

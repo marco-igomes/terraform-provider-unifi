@@ -146,7 +146,7 @@ func (r *settingRoamingAssistantResource) ImportState(ctx context.Context, req r
 func (r *settingRoamingAssistantResource) writeAndRefresh(ctx context.Context, site string, m *settingRoamingAssistantModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	// Read current so unmodified fields aren't dropped to zero values.
+	// Read current so the update sends only the fields that differ from it.
 	_, current, err := ui.GetSetting[*settings.RoamingAssistant](r.client.ApiClient, ctx, site)
 	if err != nil {
 		if _, ok := err.(*ui.NotFoundError); !ok {
@@ -156,12 +156,13 @@ func (r *settingRoamingAssistantResource) writeAndRefresh(ctx context.Context, s
 		current = &settings.RoamingAssistant{}
 	}
 
-	r.applyModelToSetting(ctx, m, current, &diags)
+	setting := *current
+	r.applyModelToSetting(ctx, m, &setting, &diags)
 	if diags.HasError() {
 		return diags
 	}
 
-	if err := r.client.UpdateSetting(ctx, site, current); err != nil {
+	if err := r.client.updateChangedFields(ctx, site, current, &setting); err != nil {
 		diags.AddError("Error Updating RoamingAssistant Setting", err.Error())
 		return diags
 	}
