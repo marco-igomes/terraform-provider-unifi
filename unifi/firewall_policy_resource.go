@@ -360,32 +360,42 @@ func (r *firewallPolicyResource) Schema(
 						MarkdownDescription: "`ALWAYS`, `EVERY_DAY`, `EVERY_WEEK`, or `ONE_TIME_ONLY`.",
 						Optional:            true,
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"date": schema.StringAttribute{
 						MarkdownDescription: "Date for ONE_TIME_ONLY mode (YYYY-MM-DD).",
 						Optional:            true,
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"date_start": schema.StringAttribute{
 						MarkdownDescription: "Start date for windowed schedules (ISO8601).",
 						Optional:            true,
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"date_end": schema.StringAttribute{
 						MarkdownDescription: "End date for windowed schedules (ISO8601).",
 						Optional:            true,
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"repeat_on_days": schema.ListAttribute{
 						MarkdownDescription: "Days of week for EVERY_WEEK mode (`mon`, `tue`, …).",
 						Optional:            true,
 						Computed:            true,
 						ElementType:         types.StringType,
-						PlanModifiers:       []planmodifier.List{listplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"time_all_day": schema.BoolAttribute{
 						Optional:      true,
@@ -396,13 +406,17 @@ func (r *firewallPolicyResource) Schema(
 						MarkdownDescription: "Start time `HH:MM` when time_all_day is false.",
 						Optional:            true,
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"time_range_end": schema.StringAttribute{
 						MarkdownDescription: "End time `HH:MM` when time_all_day is false.",
 						Optional:            true,
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 			},

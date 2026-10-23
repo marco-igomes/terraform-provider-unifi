@@ -382,7 +382,10 @@ func TestSettingMgmtChangedFields(t *testing.T) {
 		SSHKeys:     sshKeys,
 	}
 
-	changed, err := changedFields(current, (&settingResource{}).mgmtModelToSetting(ctx, model, current))
+	changed, err := changedFields(
+		current,
+		(&settingResource{}).mgmtModelToSetting(ctx, model, current),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -427,7 +430,10 @@ func TestSettingUSGChangedFields(t *testing.T) {
 		DNSVerification: dnsVerification,
 	}
 
-	changed, err := changedFields(current, (&settingResource{}).usgModelToSetting(ctx, model, current))
+	changed, err := changedFields(
+		current,
+		(&settingResource{}).usgModelToSetting(ctx, model, current),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -463,7 +469,10 @@ func TestSettingRadiusChangedFields(t *testing.T) {
 		AcctPort:          types.Int64Value(1814),
 	}
 
-	changed, err := changedFields(current, (&settingResource{}).radiusModelToSetting(ctx, model, current))
+	changed, err := changedFields(
+		current,
+		(&settingResource{}).radiusModelToSetting(ctx, model, current),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

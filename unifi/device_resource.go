@@ -287,49 +287,63 @@ func (r *deviceResource) Schema(
 				PlanModifiers: []planmodifier.Object{objectplanmodifier.UseStateForUnknown()},
 				Attributes: map[string]schema.Attribute{
 					"type": schema.StringAttribute{
-						Description:   "Network configuration type (dhcp or static).",
-						Optional:      true,
-						Computed:      true,
-						PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						Description: "Network configuration type (dhcp or static).",
+						Optional:    true,
+						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 						Validators: []validator.String{
 							stringvalidator.OneOf("dhcp", "static"),
 						},
 					},
 					"ip": schema.StringAttribute{
-						Description:   "IP address (for static configuration).",
-						Optional:      true,
-						Computed:      true,
-						PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						Description: "IP address (for static configuration).",
+						Optional:    true,
+						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"netmask": schema.StringAttribute{
-						Description:   "Network mask (for static configuration).",
-						Optional:      true,
-						Computed:      true,
-						PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						Description: "Network mask (for static configuration).",
+						Optional:    true,
+						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"gateway": schema.StringAttribute{
-						Description:   "Gateway address (for static configuration).",
-						Optional:      true,
-						Computed:      true,
-						PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						Description: "Gateway address (for static configuration).",
+						Optional:    true,
+						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"dns1": schema.StringAttribute{
-						Description:   "Primary DNS server.",
-						Optional:      true,
-						Computed:      true,
-						PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						Description: "Primary DNS server.",
+						Optional:    true,
+						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"dns2": schema.StringAttribute{
-						Description:   "Secondary DNS server.",
-						Optional:      true,
-						Computed:      true,
-						PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						Description: "Secondary DNS server.",
+						Optional:    true,
+						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"dnssuffix": schema.StringAttribute{
-						Description:   "DNS suffix.",
-						Optional:      true,
-						Computed:      true,
-						PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						Description: "DNS suffix.",
+						Optional:    true,
+						Computed:    true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"bonding_enabled": schema.BoolAttribute{
 						Description:   "Enable network bonding.",
@@ -549,118 +563,156 @@ func (r *deviceResource) Schema(
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"radio": schema.StringAttribute{
-							Description:   "Radio band (ng, na, ad, 6e).",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+							Description: "Radio band (ng, na, ad, 6e).",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"channel": schema.StringAttribute{
-							Description:   "Channel number or 'auto'.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+							Description: "Channel number or 'auto'.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"ht": schema.Int64Attribute{
-							Description:   "Channel width (20, 40, 80, 160).",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+							Description: "Channel width (20, 40, 80, 160).",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 						"tx_power": schema.StringAttribute{
-							Description:   "Transmit power or 'auto'.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+							Description: "Transmit power or 'auto'.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"tx_power_mode": schema.StringAttribute{
-							Description:   "Transmit power mode (auto, medium, high, low, custom).",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+							Description: "Transmit power mode (auto, medium, high, low, custom).",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"min_rssi_enabled": schema.BoolAttribute{
-							Description:   "Enable minimum RSSI.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+							Description: "Enable minimum RSSI.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Bool{
+								boolplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"min_rssi": schema.Int64Attribute{
-							Description:   "Minimum RSSI value.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+							Description: "Minimum RSSI value.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 						"antenna_gain": schema.Int64Attribute{
-							Description:   "Antenna gain.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+							Description: "Antenna gain.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 						"antenna_id": schema.Int64Attribute{
-							Description:   "Antenna ID.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+							Description: "Antenna ID.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 						"assisted_roaming_enabled": schema.BoolAttribute{
-							Description:   "Enable assisted roaming.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+							Description: "Enable assisted roaming.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Bool{
+								boolplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"assisted_roaming_rssi": schema.Int64Attribute{
-							Description:   "Assisted roaming RSSI threshold.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+							Description: "Assisted roaming RSSI threshold.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 						"dfs": schema.BoolAttribute{
-							Description:   "Enable DFS (Dynamic Frequency Selection).",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+							Description: "Enable DFS (Dynamic Frequency Selection).",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Bool{
+								boolplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"hard_noise_floor_enabled": schema.BoolAttribute{
-							Description:   "Enable hard noise floor.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+							Description: "Enable hard noise floor.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Bool{
+								boolplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"loadbalance_enabled": schema.BoolAttribute{
-							Description:   "Enable load balancing.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+							Description: "Enable load balancing.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Bool{
+								boolplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"maxsta": schema.Int64Attribute{
-							Description:   "Maximum number of stations.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+							Description: "Maximum number of stations.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 						"name": schema.StringAttribute{
-							Description:   "Radio name.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+							Description: "Radio name.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"sens_level": schema.Int64Attribute{
-							Description:   "Sensitivity level.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+							Description: "Sensitivity level.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Int64{
+								int64planmodifier.UseStateForUnknown(),
+							},
 						},
 						"sens_level_enabled": schema.BoolAttribute{
-							Description:   "Enable sensitivity level.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+							Description: "Enable sensitivity level.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Bool{
+								boolplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"vwire_enabled": schema.BoolAttribute{
-							Description:   "Enable virtual wire.",
-							Optional:      true,
-							Computed:      true,
-							PlanModifiers: []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+							Description: "Enable virtual wire.",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Bool{
+								boolplanmodifier.UseStateForUnknown(),
+							},
 						},
 					},
 				},
@@ -1400,7 +1452,8 @@ func mergePortOverridesByIndex(planSet, stateSet types.Set) (types.Set, diag.Dia
 		stateAttrs := stateObj.Attributes()
 		newAttrs := make(map[string]attr.Value, len(planAttrs))
 		for k, pv := range planAttrs {
-			if (pv.IsNull() || pv.IsUnknown()) && stateAttrs[k] != nil && !stateAttrs[k].IsNull() && !stateAttrs[k].IsUnknown() {
+			if (pv.IsNull() || pv.IsUnknown()) && stateAttrs[k] != nil && !stateAttrs[k].IsNull() &&
+				!stateAttrs[k].IsUnknown() {
 				newAttrs[k] = stateAttrs[k]
 				continue
 			}

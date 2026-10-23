@@ -1406,7 +1406,8 @@ func (r *clientResource) List(
 			// Honor the enable flag — a disabled override leaves a stale ID behind (see clientToModel).
 			if len(networkIDFilter) > 0 {
 				clientNetworkID := ""
-				if client.VirtualNetworkOverrideEnabled != nil && *client.VirtualNetworkOverrideEnabled {
+				if client.VirtualNetworkOverrideEnabled != nil &&
+					*client.VirtualNetworkOverrideEnabled {
 					clientNetworkID = client.VirtualNetworkOverrideID
 				}
 				if clientNetworkID == "" {

@@ -723,13 +723,17 @@ func (r *wanResource) Schema(
 						MarkdownDescription: "Whether MAC override is enabled.",
 						Optional:            true,
 						Computed:            true,
-						PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"address": schema.StringAttribute{
 						MarkdownDescription: "Override MAC address (`xx:xx:xx:xx:xx:xx`).",
 						Optional:            true,
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 			},

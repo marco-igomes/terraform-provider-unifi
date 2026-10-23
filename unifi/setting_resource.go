@@ -1158,7 +1158,8 @@ func (r *settingResource) usgModelToSetting(
 	if !model.GeoIPFilteringEnabled.IsNull() && !model.GeoIPFilteringEnabled.IsUnknown() {
 		setting.GeoIPFilteringEnabled = model.GeoIPFilteringEnabled.ValueBool()
 	}
-	if !model.GeoIPFilteringTrafficDirection.IsNull() && !model.GeoIPFilteringTrafficDirection.IsUnknown() {
+	if !model.GeoIPFilteringTrafficDirection.IsNull() &&
+		!model.GeoIPFilteringTrafficDirection.IsUnknown() {
 		setting.GeoIPFilteringTrafficDirection = model.GeoIPFilteringTrafficDirection.ValueString()
 	}
 	if !model.GreModule.IsNull() && !model.GreModule.IsUnknown() {

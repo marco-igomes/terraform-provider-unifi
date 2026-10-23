@@ -193,21 +193,21 @@ func (d dhcpRelayModel) AttributeTypes() map[string]attr.Type {
 
 // ipv6Model describes the per-network IPv6 configuration.
 type ipv6Model struct {
-	Enabled                  types.Bool   `tfsdk:"enabled"`
-	SettingPreference        types.String `tfsdk:"setting_preference"`
-	ClientAddressAssignment  types.String `tfsdk:"client_address_assignment"`
-	RaEnabled                types.Bool   `tfsdk:"ra_enabled"`
-	RaPriority               types.String `tfsdk:"ra_priority"`
-	RaPreferredLifetime      types.Int64  `tfsdk:"ra_preferred_lifetime"`
-	RaValidLifetime          types.Int64  `tfsdk:"ra_valid_lifetime"`
-	PdAutoPrefixidEnabled    types.Bool   `tfsdk:"pd_auto_prefixid_enabled"`
-	PdInterface              types.String `tfsdk:"pd_interface"`
-	PdPrefixid               types.String `tfsdk:"pd_prefixid"`
-	PdStart                  types.String `tfsdk:"pd_start"`
-	PdStop                   types.String `tfsdk:"pd_stop"`
-	SingleNetworkInterface   types.String `tfsdk:"single_network_interface"`
-	Subnet                   types.String `tfsdk:"subnet"`
-	WanDelegationType        types.String `tfsdk:"wan_delegation_type"`
+	Enabled                 types.Bool   `tfsdk:"enabled"`
+	SettingPreference       types.String `tfsdk:"setting_preference"`
+	ClientAddressAssignment types.String `tfsdk:"client_address_assignment"`
+	RaEnabled               types.Bool   `tfsdk:"ra_enabled"`
+	RaPriority              types.String `tfsdk:"ra_priority"`
+	RaPreferredLifetime     types.Int64  `tfsdk:"ra_preferred_lifetime"`
+	RaValidLifetime         types.Int64  `tfsdk:"ra_valid_lifetime"`
+	PdAutoPrefixidEnabled   types.Bool   `tfsdk:"pd_auto_prefixid_enabled"`
+	PdInterface             types.String `tfsdk:"pd_interface"`
+	PdPrefixid              types.String `tfsdk:"pd_prefixid"`
+	PdStart                 types.String `tfsdk:"pd_start"`
+	PdStop                  types.String `tfsdk:"pd_stop"`
+	SingleNetworkInterface  types.String `tfsdk:"single_network_interface"`
+	Subnet                  types.String `tfsdk:"subnet"`
+	WanDelegationType       types.String `tfsdk:"wan_delegation_type"`
 }
 
 func (m ipv6Model) AttributeTypes() map[string]attr.Type {
@@ -216,21 +216,21 @@ func (m ipv6Model) AttributeTypes() map[string]attr.Type {
 
 func ipv6AttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"enabled":                    types.BoolType,
-		"setting_preference":         types.StringType,
-		"client_address_assignment":  types.StringType,
-		"ra_enabled":                 types.BoolType,
-		"ra_priority":                types.StringType,
-		"ra_preferred_lifetime":      types.Int64Type,
-		"ra_valid_lifetime":          types.Int64Type,
-		"pd_auto_prefixid_enabled":   types.BoolType,
-		"pd_interface":               types.StringType,
-		"pd_prefixid":                types.StringType,
-		"pd_start":                   types.StringType,
-		"pd_stop":                    types.StringType,
-		"single_network_interface":   types.StringType,
-		"subnet":                     types.StringType,
-		"wan_delegation_type":        types.StringType,
+		"enabled":                   types.BoolType,
+		"setting_preference":        types.StringType,
+		"client_address_assignment": types.StringType,
+		"ra_enabled":                types.BoolType,
+		"ra_priority":               types.StringType,
+		"ra_preferred_lifetime":     types.Int64Type,
+		"ra_valid_lifetime":         types.Int64Type,
+		"pd_auto_prefixid_enabled":  types.BoolType,
+		"pd_interface":              types.StringType,
+		"pd_prefixid":               types.StringType,
+		"pd_start":                  types.StringType,
+		"pd_stop":                   types.StringType,
+		"single_network_interface":  types.StringType,
+		"subnet":                    types.StringType,
+		"wan_delegation_type":       types.StringType,
 	}
 }
 
@@ -708,77 +708,107 @@ func (r *networkResource) Schema(
 					"enabled": schema.BoolAttribute{
 						MarkdownDescription: "Whether IPv6 is enabled on this network. Maps to `ipv6_enabled`.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"setting_preference": schema.StringAttribute{
 						MarkdownDescription: "IPv6 setting preference: `auto` or `manual`.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"client_address_assignment": schema.StringAttribute{
 						MarkdownDescription: "Client address assignment: `slaac` or `dhcpv6`.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"ra_enabled": schema.BoolAttribute{
 						MarkdownDescription: "Whether to send IPv6 Router Advertisements.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"ra_priority": schema.StringAttribute{
 						MarkdownDescription: "RA priority: `high`, `medium`, or `low`.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"ra_preferred_lifetime": schema.Int64Attribute{
 						MarkdownDescription: "RA preferred lifetime in seconds.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
 					},
 					"ra_valid_lifetime": schema.Int64Attribute{
 						MarkdownDescription: "RA valid lifetime in seconds.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
 					},
 					"pd_auto_prefixid_enabled": schema.BoolAttribute{
 						MarkdownDescription: "Auto-assign a prefix ID from the WAN delegation.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"pd_interface": schema.StringAttribute{
 						MarkdownDescription: "WAN interface delegating the prefix (`wan`, `wan2`, …).",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"pd_prefixid": schema.StringAttribute{
 						MarkdownDescription: "Prefix ID (hex, 1-4 chars) when not auto-assigned.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"pd_start": schema.StringAttribute{
 						MarkdownDescription: "Start of the prefix delegation range.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"pd_stop": schema.StringAttribute{
 						MarkdownDescription: "End of the prefix delegation range.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"single_network_interface": schema.StringAttribute{
 						MarkdownDescription: "Single-network mode WAN interface.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"subnet": schema.StringAttribute{
 						MarkdownDescription: "Static IPv6 subnet (used when interface type is `static`).",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"wan_delegation_type": schema.StringAttribute{
 						MarkdownDescription: "WAN delegation type: `pd`, `single_network`, or `none`.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 			},
@@ -792,38 +822,52 @@ func (r *networkResource) Schema(
 					"enabled": schema.BoolAttribute{
 						MarkdownDescription: "Whether DHCPv6 server is enabled.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"dns_auto": schema.BoolAttribute{
 						MarkdownDescription: "Whether to hand out the controller's automatic IPv6 DNS list.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"dns_servers": schema.ListAttribute{
 						MarkdownDescription: "Static DHCPv6 DNS servers (max 4). Used when `dns_auto = false`.",
 						Computed:            true,
 						ElementType:         types.StringType,
-						PlanModifiers:       []planmodifier.List{listplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"allow_slaac": schema.BoolAttribute{
 						MarkdownDescription: "Whether SLAAC is permitted alongside DHCPv6.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.Bool{boolplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"leasetime": schema.Int64Attribute{
 						MarkdownDescription: "DHCPv6 lease time in seconds.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.Int64{
+							int64planmodifier.UseStateForUnknown(),
+						},
 					},
 					"start": schema.StringAttribute{
 						MarkdownDescription: "Start of the DHCPv6 address range.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"stop": schema.StringAttribute{
 						MarkdownDescription: "End of the DHCPv6 address range.",
 						Computed:            true,
-						PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 			},
